@@ -20,7 +20,7 @@ Pre-scaffold. The layout and commands below are the agreed target; update this f
 
 **Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop (planned Linux dual boot).
 
-**Open question:** whether the laptop's built-in Wi-Fi card supports monitor mode is not yet verified. Monitor mode needs Linux (dual boot, live USB, or a VM with a USB adapter passed through) and a chipset that supports monitor mode. Check with `iw list` that "Supported interface modes" includes `monitor`.
+**Open question:** whether the laptop's built-in Wi-Fi card supports monitor mode is not yet verified. Monitor mode needs Linux (dual boot, live USB, or a VM with a USB adapter passed through) and a chipset that supports monitor mode. `iw list` showing `monitor` is not proof (mac80211 lists it for almost every card). The real test is capturing beacons from several different SSIDs in monitor mode; see `docs/HANDOFF.md` §4.
 
 ## Stack and layout (target)
 
