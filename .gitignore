@@ -40,3 +40,7 @@ desktop.ini
 # Logs
 *.log
 logs/
+
+# Claude Code instructions and session handoff (kept local)
+CLAUDE.md
+docs/HANDOFF.md
