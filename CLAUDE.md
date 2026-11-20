@@ -18,9 +18,9 @@ Master's course project (RDSOS): a **Wi-Fi Analyzer** (similar to Android WiFi A
 
 Pre-scaffold. The layout and commands below are the agreed target; update this file once they exist.
 
-**Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop (planned Linux dual boot).
+**Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop, dual booting Ubuntu 24.04 (kernel 7.0).
 
-**Monitor mode status:** the laptop's built-in Realtek RTL8822CE (in-tree `rtw88`, kernel 7.0) works in monitor mode on **5 GHz**, but on **2.4 GHz the radio doesn't retune** between channels, so the required 13-channel graph can't be built with it yet. Fix attempts (out-of-tree `lwfinger/rtw88`) and the fallback (an AR9271 USB adapter) are in `docs/HANDOFF.md` §4–§5. `iw list` showing `monitor` is not proof of support (mac80211 lists it for almost every card); only capturing beacons from several SSIDs on each channel counts.
+**Monitor mode status: works on both bands with the built-in card.** The laptop's Realtek RTL8822CE (in-tree `rtw88`, interface `wlp4s0`) hops all 2.4 GHz channels 1–13 at 250 ms, **but only after the driver module is reloaded** before switching to monitor mode. Without the reload, the radio stays stuck on the band of the boot-time managed connection (5 GHz channel 36) and receives nothing on 2.4 GHz. After the reload, switching between 2.4 GHz and 5 GHz works. Test results are in `docs/HANDOFF.md` §4. `iw list` showing `monitor` is not proof of support (mac80211 lists it for almost every card); only capturing beacons from several SSIDs on each channel counts.
 
 ## Stack and layout (target)
 
@@ -42,6 +42,7 @@ cd frontend && npm run lint && npm run build
 
 # manual interface checks on the Linux box
 iw list                                   # confirm monitor mode support
+sudo modprobe -r rtw88_8822ce && sudo modprobe rtw88_8822ce   # required on the laptop, see Status
 sudo nmcli dev set <if> managed no        # stop NetworkManager from reverting the mode
 sudo ip link set <if> down && sudo iw dev <if> set type monitor && sudo ip link set <if> up
 sudo tcpdump -i <if> -y IEEE802_11_RADIO -c 20   # sanity check: beacons visible
@@ -56,11 +57,11 @@ sudo tcpdump -i <if> -y IEEE802_11_RADIO -c 20   # sanity check: beacons visible
    - `1` `DLT_EN10MB` (Managed): Ethernet II. The kernel strips the 802.11 header in managed mode, so the UI must say "Ethernet header (managed mode)" and not show it as 802.11.
 3. `parse/`: one parser per layer, each a pure function from `(byte[], offset)` to an immutable record plus the next offset. Covers Radiotap, 802.11 (management/data frame control, addresses by ToDS/FromDS), LLC/SNAP, Ethernet, IPv4 (all fields, options by IHL), TCP (all fields, options by data offset), and HTTP (ASCII payload when either port is 80).
 4. `wifi/`: management frames (beacon, probe response) update an AP registry keyed by BSSID:
-   - SSID from IE 0; channel from IE 3 or derived from the Radiotap frequency.
-   - Signal from the Radiotap antenna signal (dBm).
+   - SSID from IE 0; channel from IE 3, falling back to the Radiotap frequency only if IE 3 is missing. Beacons from neighbouring channels leak in (tuned to 11, you also see `CH: 10` beacons), so the tuned channel is not the AP's channel.
+   - Signal from the Radiotap antenna signal (dBm). The RTL8822CE sends three of these fields (combined, antenna 0, antenna 1) across the extended `present` bitmasks; use the first, combined one. Antenna 0 often reads −100.
    - Manufacturer from a **bundled IEEE OUI file** (no network lookups).
    - Security from the Capability Info privacy bit (WEP), RSN IE 48 (WPA2/WPA3; AKM 8 = SAE), and vendor IE 221 with OUI `00:50:F2` type 1 (WPA).
-5. **Channel hopper:** in Monitor mode it cycles channels 1–13 (`iw dev <if> set channel N`, ~250 ms) so the AP list and channel graph cover every channel. It pauses when the user pins a channel for sniffing.
+5. **Channel hopper:** in Monitor mode it cycles channels 1–13 (`iw dev <if> set channel N`, ~250 ms) so the AP list and channel graph cover every channel. It pauses when the user pins a channel for sniffing. Switching into Monitor mode must first reload the driver module (`modprobe -r rtw88_8822ce`, then `modprobe rtw88_8822ce`, then wait for the interface to reappear), or 2.4 GHz receives nothing. Keep the module name configurable so a USB adapter can be used instead.
 6. `api/`: REST for control (list interfaces, switch mode, start/stop, pin channel). WebSocket pushes **batched** updates about every 200 ms (never one message per packet) for AP snapshots and parsed packets.
 
 ### Parsing gotchas

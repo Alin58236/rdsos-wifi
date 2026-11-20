@@ -1,6 +1,6 @@
 # Session Handoff — 2026-11-20
 
-Context from the Claude Code sessions so far: session 1 on the Windows desktop, session 2 on the laptop (Windows side), which prepared the no-USB live boot.
+Context from the Claude Code sessions so far: session 1 on the Windows desktop; session 2 on the laptop (Windows side), which prepared the no-USB live boot; session 3 on the laptop's installed Ubuntu, which fixed 2.4 GHz monitor mode (§4).
 **New session: read this file, `CLAUDE.md`, `docs/requirements.md` and `docs/course-notes-summary.md` first.**
 
 ## 1. Who does what
@@ -17,14 +17,39 @@ Context from the Claude Code sessions so far: session 1 on the Windows desktop, 
 
 ## 3. Machines
 - **Desktop** (ASRock B650, Windows 10): no Wi-Fi adapter at all. Only useful for parser work against `.pcap` fixtures.
-- **Laptop** (Asus TUF **FX505DU** per `Win32_ComputerSystem`, earlier noted as FX505DT; Windows 10 Pro, AMD Ryzen + GTX 1650): the dev and capture machine. Plan: **dual boot Ubuntu 24.04 LTS**.
+- **Laptop** (Asus TUF **FX505DU** per `Win32_ComputerSystem`, earlier noted as FX505DT; Windows 10 Pro, AMD Ryzen + GTX 1650): the dev and capture machine. **Dual boot Ubuntu 24.04.5 installed** (kernel 7.0.0-43, ext4 `/` on `nvme0n1p6`).
 - Laptop disk: one 512 GB NVMe (Intel SSDPEKNW512G8), GPT, **no BitLocker** on C: or D: (checked with `manage-bde`: Fully Decrypted, no key protectors).
-- Laptop Wi-Fi card: **Realtek RTL8822CE** (802.11ac, PCIe). Linux driver: in-kernel `rtw88_8822ce`. Monitor mode almost certainly shows up in `iw list`; passive capture of other networks' beacons is **not yet verified**. Reports for rtw88 are mixed.
-- Fallback if the card fails the test: a USB adapter with chipset **MT7612U / MT7921AU** (e.g. Alfa AWUS036ACM) or **AR9271** (Alfa AWUS036NHA, or TP-Link TL-WN722N **v1 only**). Only 2.4 GHz is required (13 channels).
+- Laptop Wi-Fi card: **Realtek RTL8822CE** (802.11ac, PCIe). Linux driver: in-kernel `rtw88_8822ce`, interface `wlp4s0`. **Monitor mode verified on 2.4 GHz and 5 GHz**, with a module reload first (§4).
+- Backup only (no longer needed): a USB adapter with chipset **MT7612U / MT7921AU** (e.g. Alfa AWUS036ACM) or **AR9271** (Alfa AWUS036NHA, or TP-Link TL-WN722N **v1 only**). Only 2.4 GHz is required (13 channels).
 
-## 4. Live monitor-mode test: DONE (5 GHz works, 2.4 GHz broken)
+## 4. Monitor-mode tests: SOLVED (both bands work after a driver reload)
 
-**Result (live session, in-tree `rtw88`, kernel 7.0.0-31 HWE):**
+### Session 3 (installed Ubuntu, kernel 7.0.0-43, in-tree `rtw88`): the fix
+**Cause:** the boot-time managed connection (5 GHz ch 36, 80 MHz) leaves the driver unable to tune to 2.4 GHz. `iw` reports the new channel, but the radio stays on 5 GHz. Hopping *within* 2.4 GHz was never the problem.
+
+**Fix:** reload the driver module before entering monitor mode. After the reload, everything works:
+```bash
+sudo modprobe -r rtw88_8822ce && sudo modprobe rtw88_8822ce   # wait ~1-2 s for wlp4s0 to reappear
+sudo nmcli dev set wlp4s0 managed no
+sudo ip link set wlp4s0 down && sudo iw dev wlp4s0 set type monitor && sudo ip link set wlp4s0 up
+sudo iw dev wlp4s0 set channel 1
+```
+
+**Evidence** (tcpdump beacon counts; the "beacon `CH:`" value is IE 3 from the beacon itself, i.e. where the radio really is):
+| Test | Result |
+|---|---|
+| No reload: `set channel` 1/6/11 with the interface up, or a managed→monitor type toggle | 0 beacons on every channel (5 GHz ch 36 control: 82 beacons, 3 BSSIDs) |
+| No reload: down → `set channel`/`set freq` → up | `EBUSY (-16)`: channels can't be set while a monitor interface is down |
+| After a reload: ch 1 / 6 / 11 | 151 / 49 / 22 beacons, beacon `CH:` matches |
+| After a reload, plain `set channel` hops | all work, including 2.4 → 5 GHz → 2.4 GHz |
+| **Hopper simulation:** ch 1–13 at 250 ms for 20 s | 204 beacons from 21 BSSIDs; beacon `CH:` 1, 2, 4, 5, 6, 10, 11, 13; Radiotap frequencies on all channels except 2422 and 2447 MHz (channels 3 and 8: likely no APs there, and neither is directly next to a busy channel) |
+
+- The hopper simulation is saved as `docs/monitor-test.sh` (takes an optional interface and driver module, and prints counts only).
+- `/etc/modprobe.d/rtw88.conf` (`rtw88_core disable_lps_deep=y`, `rtw88_pci disable_aspm=y`) is installed; on its own, it does **not** fix 2.4 GHz. It's kept because it's harmless.
+- Parser notes from the captures: beacons from neighbouring channels leak in, so take the channel from IE 3. This card sends three Radiotap dBm antenna signal fields (combined, antenna 0, antenna 1); use the combined one.
+
+### Session 2 (live USB, kernel 7.0.0-31 HWE): first attempt
+**Result:**
 - **5 GHz works:** monitor mode captures beacons + data frames (2 SSIDs on ch 36). With `rtw88_core disable_lps_deep=y` + `rtw88_pci disable_aspm=y` reloaded, channel switching works (36 → 149, Radiotap shows 5 GHz ch 149).
 - **2.4 GHz is broken: the radio doesn't retune within 2.4 GHz in monitor mode.** Only the last *associated* 2.4 GHz channel receives. Associated to own network on ch 10, then monitor and hop 11 → 9 → 1 → 10 gave 0, 0, 0, 3 packets. Ch 10 showed real 2.4 GHz traffic (1 Mb/s 11b beacons, probe requests, RTS). Before any 2.4 GHz association, "ch 1" showed **ch 36 traffic labelled 2412 MHz**: `iw` reports the new channel but the hardware stays where it was.
 - No change from: Bluetooth off (rfkill + bluetooth service stopped), `iw reg set RO`, NetworkManager/wpa_supplicant stopped.
@@ -71,23 +96,13 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `iw list` showing `monitor` is **not** proof on its own: Linux's Wi-Fi layer (mac80211) lists monitor mode for almost every card. Only the beacon capture above counts.
 - The live session runs from RAM; nothing installed there persists.
 
-## 5. Next: install the dual boot, then fix 2.4 GHz
-
-**2.4 GHz plan, in parallel with the install:**
-- **Order a 2.4 GHz monitor-mode USB adapter now** as insurance: **AR9271** (Alfa AWUS036NHA, or TP-Link TL-WN722N **v1 only**; v2/v3 are Realtek and don't work). An MT7612U (Alfa AWUS036ACM) also works and adds 5 GHz.
-- On the installed Ubuntu, cheapest first:
-  1. Keep the module options permanently in `/etc/modprobe.d/rtw88.conf` (`options rtw88_core disable_lps_deep=y`, `options rtw88_pci disable_aspm=y`).
-  2. Force a full reconfiguration per hop: `ip link set $IF down; iw dev $IF set channel N; ip link set $IF up`, and try `iw dev $IF set freq 2412` instead of `set channel`.
-  3. Out-of-tree **`lwfinger/rtw88`** (newer rtw88 code, DKMS). With Secure Boot on, the module must be signed with an enrolled MOK key (DKMS asks for a password at install and MokManager asks for it once on the next boot).
-  4. Otherwise use the USB adapter. The app's design is unchanged: same libpcap/Radiotap path, only a different interface name.
-
-**Install steps:**
-1. From the same live session: "Install Ubuntu 24.04" → **Manual installation** (never "Erase disk") → the **120 GB free space** → ext4, mount point `/` (no swap partition; Ubuntu uses a swap file). Leave the existing EFI partition unformatted. Boot loader device: `/dev/nvme0n1`.
-2. After install, GRUB is the default boot loader and shows a menu to choose Ubuntu or Windows Boot Manager.
-3. GTX 1650: if first boot shows a black screen, boot with `nomodeset`, then install the proprietary NVIDIA driver ("Additional Drivers").
-4. If Wi-Fi drops out on Linux: try the `rtw88_pci disable_aspm=1` / `rtw88_core disable_lps_deep=y` module options.
-5. After install: `sudo apt install -y git iw tcpdump wireshark libpcap-dev`, a JDK 25, Node LTS, IntelliJ, VS Code and Claude Code (then install `docs/claude-setup/` there too). Clone the repo.
-6. Cleanup (from Windows, admin): `bcdedit /delete {04a2b5f1-be2d-11ee-94b0-c915f0101598}`, delete the `UBUNTU` partition (U:), and give the 8 GB back to D:.
+## 5. Next steps
+1. **Install the dev toolchain** (sudo needs a real terminal, or use `pkexec` from Claude Code's `!` prefix): `sudo apt install -y wireshark libpcap-dev`, JDK 25 (`openjdk-25-jdk` if in the repos, else Temurin 25 / SDKMAN), Node LTS (nvm), IntelliJ, VS Code. Installed so far: `git`, `gh`, `iw`, `tcpdump`.
+2. **Confirm the capture approach** (FFM → libpcap, no capture library, §2), then scaffold `backend/` and `frontend/`.
+3. **Capture fixtures from your own hotspot only** (roadmap step 0), now possible on 2.4 GHz.
+4. **Cleanup** (from Windows, admin), still pending: `bcdedit /delete {04a2b5f1-be2d-11ee-94b0-c915f0101598}`, delete the 8 GB `UBUNTU` FAT32 partition (`nvme0n1p4`, U:), and give the space back to D:.
+- Global Claude Code setup from `docs/claude-setup/` was installed on Ubuntu in session 3, with the vercel and figma plugins.
+- The AR9271 / MT7612U USB adapter is optional backup now. If the built-in card regresses after a kernel update, rerun the hopper simulation: `sudo bash docs/monitor-test.sh` (results go to `~/wifi-hop-test.txt`).
 
 ## 6. Project roadmap (the user implements; Claude guides)
 0. Hardware check and test captures from **your own hotspot only**: beacons; an open network with plain HTTP (monitor mode); HTTP in managed mode; WPA2 data. Save them as `.pcap` fixtures.
@@ -104,4 +119,5 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `docs/requirements.md`: the course spec, verbatim (the grading rubric).
 - `docs/course-notes-summary.md`: what to read in `Course-notes.pdf` (about 25 of 110 pages), topic summaries, and external sources for the gaps (Radiotap, information elements, WPA2, IPv4, TCP, libpcap).
 - `Course-notes.pdf`: course material.
-- `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. Installed on the laptop's Windows side in session 2; install it again on the laptop's Ubuntu once that exists (see its README).
+- `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. Installed on the laptop's Windows side in session 2 and on its Ubuntu in session 3.
+- `docs/monitor-test.sh`: monitor-mode hopper test (driver reload, channels 1–13 at 250 ms, beacon counts per real channel).
