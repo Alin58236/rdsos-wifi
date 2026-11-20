@@ -1,6 +1,6 @@
 # Session Handoff — 2026-11-20
 
-Context from the first Claude Code session (on the Windows desktop), so the work can continue on the laptop.
+Context from the Claude Code sessions so far: session 1 on the Windows desktop, session 2 on the laptop (Windows side), which prepared the no-USB live boot.
 **New session: read this file, `CLAUDE.md`, `docs/requirements.md` and `docs/course-notes-summary.md` first.**
 
 ## 1. Who does what
@@ -17,49 +17,56 @@ Context from the first Claude Code session (on the Windows desktop), so the work
 
 ## 3. Machines
 - **Desktop** (ASRock B650, Windows 10): no Wi-Fi adapter at all. Only useful for parser work against `.pcap` fixtures.
-- **Laptop** (Asus TUF FX505DT, Windows, AMD Ryzen + GTX 1650): the dev and capture machine. Plan: **dual boot Ubuntu 24.04 LTS**.
+- **Laptop** (Asus TUF **FX505DU** per `Win32_ComputerSystem`, earlier noted as FX505DT; Windows 10 Pro, AMD Ryzen + GTX 1650): the dev and capture machine. Plan: **dual boot Ubuntu 24.04 LTS**.
+- Laptop disk: one 512 GB NVMe (Intel SSDPEKNW512G8), GPT, **no BitLocker** on C: or D: (checked with `manage-bde`: Fully Decrypted, no key protectors).
 - Laptop Wi-Fi card: **Realtek RTL8822CE** (802.11ac, PCIe). Linux driver: in-kernel `rtw88_8822ce`. Monitor mode almost certainly shows up in `iw list`; passive capture of other networks' beacons is **not yet verified**. Reports for rtw88 are mixed.
 - Fallback if the card fails the test: a USB adapter with chipset **MT7612U / MT7921AU** (e.g. Alfa AWUS036ACM) or **AR9271** (Alfa AWUS036NHA, or TP-Link TL-WN722N **v1 only**). Only 2.4 GHz is required (13 channels).
 
-## 4. Where we stopped: dual boot, step 2 (live USB monitor-mode test)
-Done: identified the Wi-Fi card (RTL8822CE).
+## 4. Where we stopped: live monitor-mode test, booted from an internal partition (no USB)
+No USB stick was available, so the Ubuntu ISO was put on a FAT32 partition on the internal SSD, which UEFI boots like a stick. A VM/WSL2 can't be used: they can't pass the built-in PCIe Wi-Fi card through.
 
-**Still needed from the user (laptop, Windows, admin PowerShell):**
-```powershell
-manage-bde -status C:                   # BitLocker on? If yes, back up the recovery key first
-Get-Volume C | Select SizeRemaining, Size
-Get-Disk | Select Number, FriendlyName, PartitionStyle, Size
-```
-Also: is a USB stick of 8 GB or more available to wipe?
+**Done in session 2 (laptop, Windows, admin):**
+- Global Claude Code setup from `docs/claude-setup/` installed (CLAUDE.md, web guidelines, skills, settings merged with the existing `theme: dark`; vercel + figma plugins installed).
+- **Disk repartitioned** (D: shrunk 250 → 122 GB, data untouched). Layout by offset:
 
-**Live USB test, before any partitioning:**
-1. Download the Ubuntu 24.04 LTS Desktop ISO and write it with Rufus (GPT, UEFI).
-2. In Windows, turn off Fast Startup (Power Options → "Choose what the power buttons do").
-3. Boot the USB (tap Esc, or F8 on some TUF models, at power-on), keep Secure Boot on, choose "Try Ubuntu".
-4. Run:
+  | Start | Partition | Size | Role |
+  |---|---|---|---|
+  | 0 | EFI (System), FAT32 | 96 MB (67.8 MB free) | Shared boot partition; Ubuntu needs only ~6 MB here |
+  | 0.10 GB | MSR (Reserved) | 16 MB | Windows |
+  | 0.11 GB | **D:** NTFS | 122 GB | Data |
+  | 122.11 GB | **U: `UBUNTU`** FAT32 | 8 GB | Live/installer copy of the ISO. Temporary |
+  | 130.11 GB | **unallocated** | 120 GB | Reserved for the Ubuntu install (ext4 `/`) |
+  | 250.11 GB | **C:** NTFS | 227 GB | Windows |
+- ISO `ubuntu-24.04.5.1-desktop-amd64.iso` downloaded to `C:\Users\Stoia\Downloads`, SHA256 verified against releases.ubuntu.com, contents copied to U: (1020 files, 6.24 GB; largest file 2.08 GB, so FAT32's 4 GB limit is fine).
+- **Fast Startup off** (`HKLM\...\Session Manager\Power\HiberbootEnabled = 0`).
+- **UEFI boot entry "Ubuntu Live"** `{04a2b5f1-be2d-11ee-94b0-c915f0101598}` → `partition=U:` `\EFI\BOOT\BOOTX64.EFI`, added **last** in `{fwbootmgr}` displayorder (Windows stays default). BCD backup before the change: `C:\Users\Stoia\Desktop\bcd-backup-2026-11-20.bcd` (restore with `bcdedit /import`).
+
+**Next for the user: run the test.**
+1. Shut down fully, power on, tap **Esc** (or F8; or BIOS F2 → Boot) → **Ubuntu Live** → GRUB "Try or Install Ubuntu" → "Try Ubuntu". Secure Boot stays on. Black screen → `e` in GRUB, add `nomodeset` after `quiet splash`, F10.
+2. Connect to Wi-Fi **first** (needed for `apt`), then Terminal:
 ```bash
 iw dev
 lspci -k | grep -iA3 network             # expect: Kernel driver in use: rtw88_8822ce
-which tcpdump || (sudo apt update && sudo apt install -y tcpdump)   # needs internet: connect to Wi-Fi FIRST, before monitor mode
+sudo apt update && sudo apt install -y tcpdump
 IF=wlo1                                  # use the real name from `iw dev`
 sudo nmcli dev set $IF managed no
 sudo ip link set $IF down && sudo iw dev $IF set type monitor && sudo ip link set $IF up
 iw dev $IF info                          # expect: type monitor
-for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo timeout 5 tcpdump -i $IF -e -c 10 'type mgt subtype beacon'; done
+for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo timeout 5 tcpdump -i $IF -e -c 10 'type mgt subtype beacon'; done 2>&1 | tee ~/wifi-test.txt
 ```
-- **Pass:** beacons from **several different SSIDs** with `-NNdBm signal` and `NNNN MHz`. Go ahead with the dual boot.
+3. Copy `~/wifi-test.txt` to the 122 GB volume (D:) via the Files app, or photograph the screen. Bring it to Claude.
+- **Pass:** beacons from **several different SSIDs** with `-NNdBm signal` and `NNNN MHz`.
 - **Fail:** no beacons, only own network, or `set type monitor` errors. Buy a USB adapter; still dual boot.
 - `iw list` showing `monitor` is **not** proof on its own: Linux's Wi-Fi layer (mac80211) lists monitor mode for almost every card. Only the beacon capture above counts.
-- When finished, **reboot**. That puts the card back in normal mode; nothing on disk changed.
-- Paste the output of the final loop to Claude either way.
+- The live session runs from RAM; nothing installed there persists.
 
-## 5. Remaining dual-boot plan (after the test passes)
-1. Back up data. If BitLocker is on, save the recovery key (or suspend BitLocker).
-2. Shrink C: in Windows Disk Management by about 60–80 GB (unallocated).
-3. Boot the USB → Install Ubuntu → "Install alongside Windows", or manual: an ext4 `/` in the free space, reusing the existing EFI partition.
-4. GTX 1650: if the installer or first boot shows a black screen, boot with `nomodeset`, then install the proprietary NVIDIA driver ("Additional Drivers").
-5. If Wi-Fi drops out on Linux: try the `rtw88_pci disable_aspm=1` / `rtw88_core disable_lps_deep=y` module options.
-6. After install: `sudo apt install -y git iw tcpdump wireshark libpcap-dev`, a JDK 25, and Node LTS. Then clone the repo.
+## 5. Remaining dual-boot plan (after the test)
+1. From the same live session: "Install Ubuntu 24.04" → **Manual installation** (never "Erase disk") → the **120 GB free space** → ext4, mount point `/` (no swap partition; Ubuntu uses a swap file). Leave the existing EFI partition unformatted. Boot loader device: `/dev/nvme0n1`.
+2. After install, GRUB is the default boot loader and shows a menu to choose Ubuntu or Windows Boot Manager.
+3. GTX 1650: if first boot shows a black screen, boot with `nomodeset`, then install the proprietary NVIDIA driver ("Additional Drivers").
+4. If Wi-Fi drops out on Linux: try the `rtw88_pci disable_aspm=1` / `rtw88_core disable_lps_deep=y` module options.
+5. After install: `sudo apt install -y git iw tcpdump wireshark libpcap-dev`, a JDK 25, Node LTS, IntelliJ, VS Code and Claude Code (then install `docs/claude-setup/` there too). Clone the repo.
+6. Cleanup (from Windows, admin): `bcdedit /delete {04a2b5f1-be2d-11ee-94b0-c915f0101598}`, delete the `UBUNTU` partition (U:), and give the 8 GB back to D:.
 
 ## 6. Project roadmap (the user implements; Claude guides)
 0. Hardware check and test captures from **your own hotspot only**: beacons; an open network with plain HTTP (monitor mode); HTTP in managed mode; WPA2 data. Save them as `.pcap` fixtures.
@@ -76,4 +83,4 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `docs/requirements.md`: the course spec, verbatim (the grading rubric).
 - `docs/course-notes-summary.md`: what to read in `Course-notes.pdf` (about 25 of 110 pages), topic summaries, and external sources for the gaps (Radiotap, information elements, WPA2, IPv4, TCP, libpcap).
 - `Course-notes.pdf`: course material.
-- `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. **Install it on the laptop first** (see its README).
+- `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. Installed on the laptop's Windows side in session 2; install it again on the laptop's Ubuntu once that exists (see its README).
