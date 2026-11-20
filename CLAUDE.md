@@ -18,7 +18,7 @@ Master's course project (RDSOS): a **Wi-Fi Analyzer** (similar to Android WiFi A
 
 Pre-scaffold. The layout and commands below are the agreed target; update this file once they exist.
 
-**Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DT laptop (planned Linux dual boot).
+**Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop (planned Linux dual boot).
 
 **Open question:** whether the laptop's built-in Wi-Fi card supports monitor mode is not yet verified. Monitor mode needs Linux (dual boot, live USB, or a VM with a USB adapter passed through) and a chipset that supports monitor mode. Check with `iw list` that "Supported interface modes" includes `monitor`.
 
