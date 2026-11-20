@@ -1,0 +1,16 @@
+{
+  "model": "opus",
+  "enabledPlugins": {
+    "figma@claude-plugins-official": true,
+    "vercel-plugin@vercel": true
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high",
+      "autoCompactWindow": 700000
+    }
+  },
+  "autoUpdatesChannel": "latest",
+  "tui": "fullscreen",
+  "agentPushNotifEnabled": true
+}

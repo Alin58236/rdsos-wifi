@@ -76,3 +76,4 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `docs/requirements.md`: the course spec, verbatim (the grading rubric).
 - `docs/course-notes-summary.md`: what to read in `Course-notes.pdf` (about 25 of 110 pages), topic summaries, and external sources for the gaps (Radiotap, information elements, WPA2, IPv4, TCP, libpcap).
 - `Course-notes.pdf`: course material.
+- `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. **Install it on the laptop first** (see its README).
