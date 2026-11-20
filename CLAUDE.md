@@ -24,7 +24,7 @@ Pre-scaffold. The layout and commands below are the agreed target; update this f
 
 ## Stack and layout (target)
 
-- `backend/`: Spring Boot, **Java 25**, Gradle wrapper. Calls libpcap through the **Java FFM API** (`java.lang.foreign`) with no capture library.
+- `backend/`: Spring Boot, **Java 25**, **Maven** (wrapper `./mvnw`). Calls libpcap through the **Java FFM API** (`java.lang.foreign`) with no capture library.
 - `frontend/`: Vite + React + TypeScript + shadcn/ui. A localhost tool, so no Next.js and no website launch checklist.
 - `docs/`: requirements and notes.
 
@@ -32,9 +32,9 @@ Pre-scaffold. The layout and commands below are the agreed target; update this f
 
 ```bash
 # backend (capture needs root or CAP_NET_RAW+CAP_NET_ADMIN)
-cd backend && ./gradlew test
-cd backend && ./gradlew test --tests "*RadiotapParserTest"
-cd backend && ./gradlew bootJar && sudo java -jar build/libs/*.jar
+cd backend && ./mvnw test
+cd backend && ./mvnw test -Dtest=RadiotapParserTest
+cd backend && ./mvnw package && sudo java --enable-native-access=ALL-UNNAMED -jar target/*.jar
 
 # frontend (dev server proxies /api and /ws to the backend)
 cd frontend && npm install && npm run dev
