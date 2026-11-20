@@ -1,0 +1,42 @@
+# Java / Gradle
+.gradle/
+build/
+out/
+*.class
+hs_err_pid*.log
+
+# Node / Vite
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# IDEs
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Raw captures (may contain third-party MACs/SSIDs/traffic).
+# Only sanitized fixtures from our own hotspot are committed.
+*.pcap
+*.pcapng
+*.cap
+!backend/src/test/resources/fixtures/**
+
+# Logs
+*.log
+logs/

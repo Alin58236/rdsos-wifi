@@ -1,0 +1,23 @@
+# Project Requirements (RDSOS — Retele Dinamice si Sisteme de Operare Specializate)
+
+Verbatim course specification. This is the scope document; grading is based on it.
+
+The project topic is: development of a WiFi Analyzer and a network packet sniffer for a wireless network interface (for either a desktop or mobile system). The following project functionalities must be implemented:
+
+1. The WiFi Analyzer must provide a graphical interface similar to that of Android WiFi Analyzer. This means that: graphical icons must be displayed for each detected network, with their colors reflecting the signal strength (green, yellow, red); a graph must show how congested the 13 WiFi channels are, similar to the channel graph displayed in Android WiFi Analyzer. The following data must be displayed for each detected wireless network: SSID (network name), Access Point MAC address, manufacturer, signal strength, channel in use, frequency in use, network security/encryption characteristics. To capture all this data, the wireless network interface must first be switched to "Monitor" mode, rather than "Managed" mode, and must not be connected to a wireless network.
+
+2. Network Packet Sniffer providing functionality similar to TCPdump or WireShark, but with a limited set of features. It must capture packets from the wireless network interface and display the following information: IEEE 802.11 header (source and destination MAC addresses), IP header (source and destination IP addresses and the remaining header fields), TCP header (source and destination ports and the remaining header fields). If the packet is an HTTP packet (i.e., the destination port is 80), its ASCII payload must also be displayed. The packet sniffer must operate in both "Monitor" mode and "Managed" mode of the wireless network interface.
+
+Naturally, implementing this project requires calling various operating system functions or using software library wrappers around these functions. However, the purpose of the project is to ensure that the functions being called perform only minimal operations. For example, packet capture can be implemented using the libpcap library, but you must manually parse the packet headers. This means manually parsing the byte stream containing the raw packet and splitting it into headers and the individual fields within each header. The project grade will be proportional to the number of features implemented from the list above and to the extent to which you implement functionality manually, without relying on external library functions.
+
+3. Observation: For the WiFi Analyzer application, it is important to switch the wireless network interface to "Monitor" mode in order to capture management packets containing a Radiotap header. This is relatively easy to do on Linux, but not as straightforward on Windows or macOS (as far as I know). Of course, you may also implement the application on Android, similarly to Android WiFi Analyzer, if you wish (obviously, without copying its code). If you do not have Linux, do not want to install Linux in a dual-boot configuration or in a virtual machine, and cannot switch your Wi-Fi adapter to "Monitor" mode, you may implement the WiFi Analyzer (Project 1) using a library/API (e.g., the Microsoft Windows Native WiFi API), without manually parsing the management packets. However, in this case (i.e., if you do not manually parse the management packets and do not switch the interface to "Monitor" mode), you must implement a third project to obtain the maximum grade: a Wi-Fi network auditing and analysis tool. Even when the Wi-Fi interface is operating in "Managed" mode, this tool must display the following information:
+- TCP and UDP connections, identified by the 4-tuple [Source IP Address:Source Port - Destination IP Address:Destination Port]
+- real-time traffic rate in bits per second for each TCP/UDP connection; this information must be displayed graphically, not just as text
+- the application using each TCP/UDP connection (e.g., Google Chrome, Acrobat Reader, Microsoft Teams, etc.)
+- details about the destination IP address and destination port, including: the DNS name associated with the IP address, the port type (HTTP, SSH, FTP, etc.), IP geolocation information (country and city)
+
+This tool must display the requested information in real time and update it continuously in real time.
+Implementing Project 3 above does not mean that Project 1 (WiFi Analyzer) no longer needs to be implemented.
+
+## Team decision
+Projects 1 and 2 are implemented in one application, with real Monitor mode and manual parsing, so that Project 3 is not required.
