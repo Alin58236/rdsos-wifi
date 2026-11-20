@@ -22,7 +22,18 @@ Context from the Claude Code sessions so far: session 1 on the Windows desktop, 
 - Laptop Wi-Fi card: **Realtek RTL8822CE** (802.11ac, PCIe). Linux driver: in-kernel `rtw88_8822ce`. Monitor mode almost certainly shows up in `iw list`; passive capture of other networks' beacons is **not yet verified**. Reports for rtw88 are mixed.
 - Fallback if the card fails the test: a USB adapter with chipset **MT7612U / MT7921AU** (e.g. Alfa AWUS036ACM) or **AR9271** (Alfa AWUS036NHA, or TP-Link TL-WN722N **v1 only**). Only 2.4 GHz is required (13 channels).
 
-## 4. Where we stopped: live monitor-mode test, booted from an internal partition (no USB)
+## 4. Live monitor-mode test: DONE (5 GHz works, 2.4 GHz broken)
+
+**Result (live session, in-tree `rtw88`, kernel 7.0.0-31 HWE):**
+- **5 GHz works:** monitor mode captures beacons + data frames (2 SSIDs on ch 36). With `rtw88_core disable_lps_deep=y` + `rtw88_pci disable_aspm=y` reloaded, channel switching works (36 → 149, Radiotap shows 5 GHz ch 149).
+- **2.4 GHz is broken: the radio doesn't retune within 2.4 GHz in monitor mode.** Only the last *associated* 2.4 GHz channel receives. Associated to own network on ch 10, then monitor and hop 11 → 9 → 1 → 10 gave 0, 0, 0, 3 packets. Ch 10 showed real 2.4 GHz traffic (1 Mb/s 11b beacons, probe requests, RTS). Before any 2.4 GHz association, "ch 1" showed **ch 36 traffic labelled 2412 MHz**: `iw` reports the new channel but the hardware stays where it was.
+- No change from: Bluetooth off (rfkill + bluetooth service stopped), `iw reg set RO`, NetworkManager/wpa_supplicant stopped.
+- **Why it matters:** `requirements.md` requires the graph of the **13 Wi-Fi channels**, i.e. 2.4 GHz. 5 GHz alone does not satisfy Project 1. An OS scan API is not an allowed fallback.
+- A newer kernel is not the fix: the ISO already runs the HWE 7.0 kernel, and mainline kernels are unsigned (Secure Boot).
+
+The setup below is kept for reference until the cleanup in §5.
+
+### Live boot setup (session 2, no USB)
 No USB stick was available, so the Ubuntu ISO was put on a FAT32 partition on the internal SSD, which UEFI boots like a stick. A VM/WSL2 can't be used: they can't pass the built-in PCIe Wi-Fi card through.
 
 **Done in session 2 (laptop, Windows, admin):**
@@ -41,7 +52,7 @@ No USB stick was available, so the Ubuntu ISO was put on a FAT32 partition on th
 - **Fast Startup off** (`HKLM\...\Session Manager\Power\HiberbootEnabled = 0`).
 - **UEFI boot entry "Ubuntu Live"** `{04a2b5f1-be2d-11ee-94b0-c915f0101598}` → `partition=U:` `\EFI\BOOT\BOOTX64.EFI`, added **last** in `{fwbootmgr}` displayorder (Windows stays default). BCD backup before the change: `C:\Users\Stoia\Desktop\bcd-backup-2026-11-20.bcd` (restore with `bcdedit /import`).
 
-**Next for the user: run the test.**
+**How the test was run:**
 1. Shut down fully, power on, tap **Esc** (or F8; or BIOS F2 → Boot) → **Ubuntu Live** → GRUB "Try or Install Ubuntu" → "Try Ubuntu". Secure Boot stays on. Black screen → `e` in GRUB, add `nomodeset` after `quiet splash`, F10.
 2. Connect to Wi-Fi **first** (needed for `apt`), then Terminal:
 ```bash
@@ -60,7 +71,17 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `iw list` showing `monitor` is **not** proof on its own: Linux's Wi-Fi layer (mac80211) lists monitor mode for almost every card. Only the beacon capture above counts.
 - The live session runs from RAM; nothing installed there persists.
 
-## 5. Remaining dual-boot plan (after the test)
+## 5. Next: install the dual boot, then fix 2.4 GHz
+
+**2.4 GHz plan, in parallel with the install:**
+- **Order a 2.4 GHz monitor-mode USB adapter now** as insurance: **AR9271** (Alfa AWUS036NHA, or TP-Link TL-WN722N **v1 only**; v2/v3 are Realtek and don't work). An MT7612U (Alfa AWUS036ACM) also works and adds 5 GHz.
+- On the installed Ubuntu, cheapest first:
+  1. Keep the module options permanently in `/etc/modprobe.d/rtw88.conf` (`options rtw88_core disable_lps_deep=y`, `options rtw88_pci disable_aspm=y`).
+  2. Force a full reconfiguration per hop: `ip link set $IF down; iw dev $IF set channel N; ip link set $IF up`, and try `iw dev $IF set freq 2412` instead of `set channel`.
+  3. Out-of-tree **`lwfinger/rtw88`** (newer rtw88 code, DKMS). With Secure Boot on, the module must be signed with an enrolled MOK key (DKMS asks for a password at install and MokManager asks for it once on the next boot).
+  4. Otherwise use the USB adapter. The app's design is unchanged: same libpcap/Radiotap path, only a different interface name.
+
+**Install steps:**
 1. From the same live session: "Install Ubuntu 24.04" → **Manual installation** (never "Erase disk") → the **120 GB free space** → ext4, mount point `/` (no swap partition; Ubuntu uses a swap file). Leave the existing EFI partition unformatted. Boot loader device: `/dev/nvme0n1`.
 2. After install, GRUB is the default boot loader and shows a menu to choose Ubuntu or Windows Boot Manager.
 3. GTX 1650: if first boot shows a black screen, boot with `nomodeset`, then install the proprietary NVIDIA driver ("Additional Drivers").

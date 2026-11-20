@@ -20,7 +20,7 @@ Pre-scaffold. The layout and commands below are the agreed target; update this f
 
 **Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop (planned Linux dual boot).
 
-**Open question:** whether the laptop's built-in Wi-Fi card supports monitor mode is not yet verified. Monitor mode needs Linux (dual boot, live USB, or a VM with a USB adapter passed through) and a chipset that supports monitor mode. `iw list` showing `monitor` is not proof (mac80211 lists it for almost every card). The real test is capturing beacons from several different SSIDs in monitor mode; see `docs/HANDOFF.md` §4.
+**Monitor mode status:** the laptop's built-in Realtek RTL8822CE (in-tree `rtw88`, kernel 7.0) works in monitor mode on **5 GHz**, but on **2.4 GHz the radio doesn't retune** between channels, so the required 13-channel graph can't be built with it yet. Fix attempts (out-of-tree `lwfinger/rtw88`) and the fallback (an AR9271 USB adapter) are in `docs/HANDOFF.md` §4–§5. `iw list` showing `monitor` is not proof of support (mac80211 lists it for almost every card); only capturing beacons from several SSIDs on each channel counts.
 
 ## Stack and layout (target)
 
