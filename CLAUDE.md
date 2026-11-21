@@ -12,7 +12,7 @@ Master's course project (RDSOS): a **Wi-Fi Analyzer** (similar to Android WiFi A
 
 ## Working mode
 
-**The user writes the code; Claude guides.** Explain, propose structure, point to reading, review, answer questions. Don't implement backend/frontend files unless the user asks for a specific piece. Session history and next steps are in `docs/HANDOFF.md`.
+**The user writes the code; Claude guides.** Explain, propose structure, point to reading, review, answer questions. Don't implement backend/frontend files unless the user asks for a specific piece. Explanations go in **Romanian, with technical terms left in English** (carrier, frame, header, beacon...); code and technical docs (CLAUDE.md, HANDOFF.md) stay in English; personal study notes (e.g. `docs/info_for_project.md`) are in Romanian. Session history and next steps are in `docs/HANDOFF.md`.
 
 ## Status
 
