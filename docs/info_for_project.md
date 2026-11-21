@@ -399,6 +399,41 @@ Notițele folosesc comenzi vechi. `iwconfig`, `iwlist` și `ifconfig` sunt **dep
 
 ---
 
-## 15. Ce urmează
+## 15. Instrumentele din curs: ce folosim și ce nu
+
+**Concluzie:** din suita aircrack-ng nu intră **nimic în cod**. Păstrăm doar **airodump-ng și Wireshark, ca referință manuală de test**.
+
+| Din curs | Ce face | Îl folosim? |
+|---|---|---|
+| `aircrack-ng` + `rockyou.txt` | sparge parola WPA2 (dictionary attack) | ❌ **Nu.** Nu e cerut; ilegal pe rețele străine |
+| `aireplay-ng -0` | **deauth**: deconectează forțat clienți (packet injection) | ❌ **Nu.** Nu e cerut; perturbă activ rețeaua altora, ilegal pe rețele străine. Proiectul e doar **pasiv** |
+| `airdecap-ng` | decriptează trafic WEP/WPA cu parola cunoscută | ❌ **Nu**, mult peste cerințe |
+| `airmon-ng start` / `check kill` | pune placa în monitor mode | ❌ **Nu în aplicație** (vezi mai jos) |
+| `airodump-ng` | listează rețelele: BSSID, PWR, CH, ENC, ESSID | ⚠️ **Doar ca referință de test**, manual, comparat cu analyzer-ul nostru |
+| Kismet | wireless monitoring | ⚠️ Opțional, tot pentru validare. Nu e necesar |
+| `iwconfig`, `iwlist`, `ifconfig` | control interfață | ❌ Deprecated. Folosim `iw`, `ip`, `nmcli` |
+| Huffman/LZW, `podman`/`docker`, `oc` | alte capitole | ❌ Nicio legătură |
+
+### De ce nu `airmon-ng`, deși face monitor mode
+- **Pe laptop nu ajunge:** RTL8822CE are nevoie de reload la driver (`modprobe -r rtw88_8822ce && modprobe rtw88_8822ce`) înainte de monitor mode, altfel 2.4 GHz nu primește nimic. `airmon-ng` nu face reload.
+- `airmon-ng check kill` **oprește tot NetworkManager-ul** și taie internetul. Noi folosim `nmcli dev set <if> managed no`, care afectează doar interfața Wi-Fi.
+- `airmon-ng start` poate crea o interfață nouă (`wlp4s0mon`), ceea ce complică codul.
+- În spate tot `iw` + `ip` face treaba, exact ce rulează deja `InterfaceService` și `ChannelHopper`.
+
+### ⚠️ Regula importantă pentru notă
+Aplicația **nu are voie să cheme `airodump-ng`, `tcpdump`, `tshark`** sau alte tool-uri ca să obțină datele și să le parseze output-ul. Atunci munca ar fi a lor, iar cerința spune explicit că parsarea trebuie făcută manual.
+
+**Permis:**
+- `iw` / `ip` / `nmcli` / `modprobe`, pentru schimbarea modului și a channel-ului: funcții de OS cu operații minimale, cum permite cerința;
+- **libpcap prin FFM**, care doar deschide captura și dă **bytes bruți**. Tot restul (Radiotap, 802.11, LLC/SNAP, IPv4, TCP, HTTP) îl parsăm noi.
+
+### Cum folosești instrumentele de validare
+- `sudo apt install aircrack-ng` (Wireshark e deja instalat).
+- Rulezi `airodump-ng` (sau Wireshark pe aceeași interfață) **în paralel** cu aplicația ta. Dacă SSID, BSSID, channel, dBm și security coincid, parserele sunt corecte.
+- Testezi doar pe rețeaua sau hotspot-ul tău. Rețelele vecine le poți **vedea** (beacons sunt publice), dar nu intervii asupra lor.
+
+---
+
+## 16. Ce urmează
 - Notițele de curs relevante pentru proiect se termină aici. Restul PDF-ului (SDN, HPC, containere, Kubernetes) nu are legătură.
 - **Nu sunt în notițe** (vezi `docs/course-notes-summary.md`, secțiunea 3): **Radiotap**, **information elements** din beacon (SSID, channel, RSN), **WPA2/WPA3**, header-ele **IPv4/TCP**, **libpcap**. Le adăugăm aici pe măsură ce ajungi la ele.
