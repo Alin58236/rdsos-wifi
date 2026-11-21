@@ -1,6 +1,6 @@
 # Informații utile pentru proiect: Course-notes.pdf, p. 1–73
 
-Doar ce te ajută la proiect (Wi-Fi Analyzer + packet sniffer), din tot capitolul 802.11, până la „WPA and WPA-2” (p. 73). Restul PDF-ului nu e relevant.
+Doar ce te ajută la proiect (Wi-Fi Analyzer + packet sniffer), din tot capitolul 802.11, până la „WPA and WPA-2” (p. 73). Restul PDF-ului nu e relevant. Secțiunile 15+ vin din discuțiile despre implementare.
 Fiecare secțiune începe cu **„La ce folosește”**. Teoria pură (Fourier, Huffman/LZW, GSM/LTE etc.) e omisă.
 
 ---
@@ -434,6 +434,107 @@ Aplicația **nu are voie să cheme `airodump-ng`, `tcpdump`, `tshark`** sau alte
 
 ---
 
-## 16. Ce urmează
+## 16. Captura cu libpcap și structura buclei (din discuții, nu din curs)
+
+**La ce folosește:** cum obții bytes-ii de parsat și cum legi captura, channel hopping-ul și WebSocket-ul.
+
+### `InterfaceService` NU dă date de parsat
+- `CommandRunner` întoarce `CommandResult(exitCode, output)`, unde `output` e textul comenzii (stdout + stderr).
+- Pentru `modprobe`, `nmcli`, `ip link set`, `iw set type/channel`: **la succes output-ul e gol**. La eroare conține mesajul (ex. `command failed: Device or resource busy (-16)`).
+- Contează doar **`exitCode`** (0 = OK), verificat deja de `runChecked`. `output` e util doar pentru log-uri sau mesaje de eroare.
+- Modul interfeței vine din `/sys/class/net/<if>/type`: `1` = managed, `803` = monitor, parsat în `InterfaceMode`.
+- ⚠️ **Nu** lua rețelele din `iw dev <if> scan`. E un OS scan API, merge doar în managed mode, dă totul deja parsat și **nu contează la notă**.
+- **Datele (rețele, pachete) vin doar din captura libpcap**, ca bytes bruți pe care îi parsezi tu.
+
+### Ce întoarce libpcap: un frame per apel
+`pcap_next_ex(handle, &header, &data)`:
+- **return:**
+  - `1` = frame primit;
+  - `0` = timeout (nimic în intervalul setat);
+  - `-1` = eroare;
+  - `-2` = sfârșit de fișier (doar la `.pcap`).
+- **`header`** = pointer la `struct pcap_pkthdr` (24 bytes pe Linux x86_64):
+
+| Offset | Câmp | Tip | Ce e |
+|---|---|---|---|
+| 0 | `ts.tv_sec` | long (8) | timestamp, secunde |
+| 8 | `ts.tv_usec` | long (8) | microsecunde |
+| 16 | **`caplen`** | uint32 (4) | **câți bytes ai la `data`, deci mărimea lui `byte[]`** |
+| 20 | `len` | uint32 (4) | lungimea reală a frame-ului |
+
+- **`data`** = pointer la bytes-ii frame-ului.
+- `len > caplen` doar dacă `snaplen` e mic. Setează **`pcap_set_snaplen(handle, 65535)`**, ca să ai `caplen == len`.
+- ⚠️ **`data` e valid doar până la următorul `pcap_next_ex`**, pentru că libpcap refolosește buffer-ul. **Copiază imediat** în `byte[]`.
+
+Ilustrativ, în FFM:
+```java
+MemorySegment hdrPtr  = arena.allocate(ValueLayout.ADDRESS);   // out-param: pointer-la-pointer
+MemorySegment dataPtr = arena.allocate(ValueLayout.ADDRESS);
+
+int rc = (int) pcapNextEx.invokeExact(handle, hdrPtr, dataPtr);
+if (rc == 1) {
+    MemorySegment hdr = hdrPtr.get(ValueLayout.ADDRESS, 0).reinterpret(24);
+    long tsSec  = hdr.get(ValueLayout.JAVA_LONG, 0);
+    long tsUsec = hdr.get(ValueLayout.JAVA_LONG, 8);
+    int caplen  = hdr.get(ValueLayout.JAVA_INT, 16);
+    int len     = hdr.get(ValueLayout.JAVA_INT, 20);
+
+    byte[] frame = dataPtr.get(ValueLayout.ADDRESS, 0)
+                          .reinterpret(caplen)
+                          .toArray(ValueLayout.JAVA_BYTE);
+}
+```
+
+### Structura: 3 bucăți independente
+Greșeli de evitat:
+- ❌ **Nu** opri și nu redeschide captura pe fiecare channel. `pcap_create`/`pcap_activate` durează zeci de ms și pierzi frame-uri. Captura se deschide **o dată** și rămâne deschisă; hopping-ul se face în paralel, iar libpcap primește ce aude radio-ul pe channel-ul curent.
+- ❌ **Nu** trimite pe WebSocket din bucla de captură. Bucla trebuie să citească continuu, altfel se umple buffer-ul kernel-ului și pierzi frame-uri. Frontend-ul primește **starea agregată** la fiecare ~200 ms, nu fiecare beacon (~10 beacons/s per AP).
+
+```
+┌─ ChannelHopper (thread propriu, DEJA SCRIS) ─────────────────────────────┐
+│  la fiecare 250 ms: iw dev wlp4s0 set channel N   (1 → 13 → 1 → ...)    │
+└──────────────────────────────────────────────────────────────────────────┘
+┌─ CaptureLoop (thread propriu) ───────────────────────────────────────────┐
+│  pcap deschis O DATĂ                                                      │
+│  while (running) {                                                        │
+│      rc = pcap_next_ex(...)                                               │
+│      if (rc == 0) continue;            // timeout → verifici `running`    │
+│      if (rc == 1) {                                                       │
+│          byte[] frame = copy(caplen);                                     │
+│          parsed = parser.parse(frame, linkType);                          │
+│          if (beacon)  apRegistry.update(parsed);   // Map<BSSID, AP>      │
+│          if (data)    packetBuffer.add(parsed);    // buffer limitat      │
+│      }                                                                    │
+│  }                                                                        │
+└──────────────────────────────────────────────────────────────────────────┘
+┌─ WebSocket publisher (@Scheduled la 200 ms) ─────────────────────────────┐
+│  trimite apRegistry.snapshot() + packetBuffer.drainBatch()               │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+**Detalii:**
+- **`pcap_set_timeout(handle, 100)`**: fără trafic, `pcap_next_ex` întoarce `0` după 100 ms. Bucla verifică `running` și se poate opri curat.
+- **Parsarea în același thread cu captura e OK la început** (un beacon se parsează în microsecunde). Dacă apar pierderi, le vezi cu **`pcap_stats`** (`ps_drop`); abia atunci separi cu o coadă (`ArrayBlockingQueue`).
+- **Platform thread pentru captură**, nu virtual thread: un apel nativ blocant „lipește” virtual thread-ul de carrier.
+- **AP registry:**
+  - per BSSID: SSID, channel (din **IE 3**, nu din `hopper.currentChannel()`, din cauza leakage-ului), dBm (eventual medie), `lastSeen`;
+  - un ciclu de hopping ≈ 13 × 250 ms ≈ 3,25 s, deci scoți AP-urile nevăzute de **~30 s**.
+- Hopper-ul folosește lista de channels din config (1–13), deci nu mai ai nevoie de un `for` propriu. (Atenție: `for (i=0; i<=13; i++)` ar face 14 iterații începând cu 0; corect ar fi `for (ch=1; ch<=13; ch++)`.)
+
+### Monitor mode: din UI, nu automat la startup
+- Comutarea **taie internetul** (driver reload + NetworkManager scos de pe interfață), ceea ce e enervant în dezvoltare.
+- Sniffer-ul trebuie să meargă în **ambele moduri**, deci modul se schimbă oricum la runtime.
+- **Recomandare:** aplicația pornește idle în managed mode. În UI ai un toggle **Monitor / Managed** și un buton **Start / Stop capture**.
+- **Ordinea la schimbarea modului:**
+```
+stop hopper → stop CaptureLoop (running = false, pcap_close) → InterfaceService.switchToMonitor()
+→ redeschizi pcap (link type devine 127) → start CaptureLoop → start hopper (doar în monitor)
+```
+- Captura se închide **înainte** de comutare, pentru că driver reload-ul recreează interfața și handle-ul vechi devine invalid.
+- La oprirea aplicației (`@PreDestroy`): revii în managed mode.
+
+---
+
+## 17. Ce urmează
 - Notițele de curs relevante pentru proiect se termină aici. Restul PDF-ului (SDN, HPC, containere, Kubernetes) nu are legătură.
 - **Nu sunt în notițe** (vezi `docs/course-notes-summary.md`, secțiunea 3): **Radiotap**, **information elements** din beacon (SSID, channel, RSN), **WPA2/WPA3**, header-ele **IPv4/TCP**, **libpcap**. Le adăugăm aici pe măsură ce ajungi la ele.
