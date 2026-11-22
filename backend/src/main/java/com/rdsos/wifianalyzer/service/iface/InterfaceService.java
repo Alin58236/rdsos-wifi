@@ -40,6 +40,7 @@ public class InterfaceService {
 
     public List<WifiInterface> listWirelessInterfaces() {
         try (Stream<Path> entries = Files.list(sysClassNet)) {
+            log.info("Searching through all Wireless Interfaces");
             return entries
                     .filter(dir -> Files.isDirectory(dir.resolve("phy80211")))
                     .map(dir -> new WifiInterface(dir.getFileName().toString(), readMode(dir)))
@@ -50,50 +51,50 @@ public class InterfaceService {
         }
     }
 
-    public InterfaceMode mode(String name) {
-        requireWireless(name);
-        return readMode(sysClassNet.resolve(name));
+    public InterfaceMode mode(String interfaceName) {
+        requireWireless(interfaceName);
+        return readMode(sysClassNet.resolve(interfaceName));
     }
 
     /**
      * Reloads the driver (if configured), takes the interface away from NetworkManager and sets monitor type.
      * The reload is needed on the RTL8822CE: without it the radio stays on the 5 GHz band of the boot connection.
      */
-    public void switchToMonitor(String name) {
-        requireWireless(name);
+    public void switchToMonitor(String interfaceName) {
+        requireWireless(interfaceName);
         String module = properties.getDriverModule();
         boolean reload = module != null && !module.isBlank();
         if (reload) {
             runner.runChecked(List.of("modprobe", "-r", module));
             runner.runChecked(List.of("modprobe", module));
-            awaitInterface(name);
+            awaitInterface(interfaceName);
         }
-        List<String> unmanage = List.of("nmcli", "dev", "set", name, "managed", "no");
+        List<String> unmanage = List.of("nmcli", "dev", "set", interfaceName, "managed", "no");
         if (reload) {
             // NetworkManager needs a moment to discover the re-registered device.
             runWithRetry(unmanage);
         } else {
             runner.runChecked(unmanage);
         }
-        runner.runChecked(List.of("ip", "link", "set", name, "down"));
-        runner.runChecked(List.of("iw", "dev", name, "set", "type", "monitor"));
-        runner.runChecked(List.of("ip", "link", "set", name, "up"));
-        log.info("{} is in monitor mode", name);
+        runner.runChecked(List.of("ip", "link", "set", interfaceName, "down"));
+        runner.runChecked(List.of("iw", "dev", interfaceName, "set", "type", "monitor"));
+        runner.runChecked(List.of("ip", "link", "set", interfaceName, "up"));
+        log.info("{} is in monitor mode", interfaceName);
     }
 
-    public void switchToManaged(String name) {
-        requireWireless(name);
-        runner.runChecked(List.of("ip", "link", "set", name, "down"));
-        runner.runChecked(List.of("iw", "dev", name, "set", "type", "managed"));
-        runner.runChecked(List.of("ip", "link", "set", name, "up"));
-        runner.runChecked(List.of("nmcli", "dev", "set", name, "managed", "yes"));
-        log.info("{} is back in managed mode", name);
+    public void switchToManaged(String interfaceName) {
+        requireWireless(interfaceName);
+        runner.runChecked(List.of("ip", "link", "set", interfaceName, "down"));
+        runner.runChecked(List.of("iw", "dev", interfaceName, "set", "type", "managed"));
+        runner.runChecked(List.of("ip", "link", "set", interfaceName, "up"));
+        runner.runChecked(List.of("nmcli", "dev", "set", interfaceName, "managed", "yes"));
+        log.info("{} is back in managed mode", interfaceName);
     }
 
-    public void setChannel(String name, int channel) {
+    public void setChannel(String interfaceName, int channel) {
         requireAllowedChannel(channel);
-        requireWireless(name);
-        runner.runChecked(List.of("iw", "dev", name, "set", "channel", Integer.toString(channel)));
+        requireWireless(interfaceName);
+        runner.runChecked(List.of("iw", "dev", interfaceName, "set", "channel", Integer.toString(channel)));
     }
 
     public void requireAllowedChannel(int channel) {
@@ -102,12 +103,12 @@ public class InterfaceService {
         }
     }
 
-    public void requireWireless(String name) {
-        if (name == null || !VALID_NAME.matcher(name).matches() || name.equals(".") || name.equals("..")) {
+    public void requireWireless(String interfaceName) {
+        if (interfaceName == null || !VALID_NAME.matcher(interfaceName).matches() || interfaceName.equals(".") || interfaceName.equals("..")) {
             throw new IllegalArgumentException("Invalid interface name");
         }
-        if (!Files.isDirectory(sysClassNet.resolve(name).resolve("phy80211"))) {
-            throw new IllegalArgumentException("Not a wireless interface: " + name);
+        if (!Files.isDirectory(sysClassNet.resolve(interfaceName).resolve("phy80211"))) {
+            throw new IllegalArgumentException("Not a wireless interface: " + interfaceName);
         }
     }
 
@@ -120,14 +121,14 @@ public class InterfaceService {
         }
     }
 
-    private void awaitInterface(String name) {
+    private void awaitInterface(String interfaceName) {
         for (int i = 0; i < REAPPEAR_ATTEMPTS; i++) {
-            if (Files.isDirectory(sysClassNet.resolve(name).resolve("phy80211"))) {
+            if (Files.isDirectory(sysClassNet.resolve(interfaceName).resolve("phy80211"))) {
                 return;
             }
             sleep();
         }
-        throw new IllegalStateException(name + " did not reappear after reloading " + properties.getDriverModule());
+        throw new IllegalStateException(interfaceName + " did not reappear after reloading " + properties.getDriverModule());
     }
 
     private void runWithRetry(List<String> command) {

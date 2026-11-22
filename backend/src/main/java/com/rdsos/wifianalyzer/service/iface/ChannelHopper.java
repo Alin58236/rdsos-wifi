@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class ChannelHopper {
 
-    private final InterfaceService interfaces;
+    private final InterfaceService interfaceService;
     private final List<Integer> channels;
     private final long intervalMs;
 
@@ -29,15 +29,15 @@ public class ChannelHopper {
     private int currentChannel;
     private Integer pinnedChannel;
 
-    public ChannelHopper(InterfaceService interfaces, WifiProperties properties) {
-        this.interfaces = interfaces;
+    public ChannelHopper(InterfaceService interfaceService, WifiProperties properties) {
+        this.interfaceService = interfaceService;
         this.channels = List.copyOf(properties.getHopChannels());
         this.intervalMs = properties.getHopIntervalMs();
     }
 
-    public synchronized void start(String name) {
+    public synchronized void start(String interfaceName) {
         stop();
-        target(name);
+        target(interfaceName);
         scheduler = Executors.newSingleThreadScheduledExecutor(Thread.ofPlatform().name("channel-hopper").daemon().factory());
         scheduler.scheduleAtFixedRate(this::tick, 0, intervalMs, TimeUnit.MILLISECONDS);
     }
@@ -57,11 +57,11 @@ public class ChannelHopper {
     }
 
     public synchronized void pin(int channel) {
-        interfaces.requireAllowedChannel(channel);
+        interfaceService.requireAllowedChannel(channel);
         if (interfaceName == null) {
             throw new IllegalStateException("Channel hopper is not running");
         }
-        interfaces.setChannel(interfaceName, channel);
+        interfaceService.setChannel(interfaceName, channel);
         pinnedChannel = channel;
         index = channels.indexOf(channel);
         currentChannel = channel;
@@ -81,9 +81,9 @@ public class ChannelHopper {
     }
 
     /** Selects the interface without starting the scheduler; tests drive {@link #tick()} directly. */
-    synchronized void target(String name) {
-        interfaces.requireWireless(name);
-        interfaceName = name;
+    synchronized void target(String interfaceName) {
+        interfaceService.requireWireless(interfaceName);
+        this.interfaceName = interfaceName;
         index = -1;
     }
 
@@ -94,7 +94,7 @@ public class ChannelHopper {
         index = (index + 1) % channels.size();
         int channel = channels.get(index);
         try {
-            interfaces.setChannel(interfaceName, channel);
+            interfaceService.setChannel(interfaceName, channel);
             currentChannel = channel;
         } catch (RuntimeException e) {
             // One failed hop must not kill the scheduler; the next tick tries the next channel.
