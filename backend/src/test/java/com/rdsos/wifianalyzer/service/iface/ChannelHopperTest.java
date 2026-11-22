@@ -1,7 +1,5 @@
-package com.rdsos.wifianalyzer.iface;
+package com.rdsos.wifianalyzer.service.iface;
 
-import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
-import com.rdsos.wifianalyzer.service.iface.InterfaceService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

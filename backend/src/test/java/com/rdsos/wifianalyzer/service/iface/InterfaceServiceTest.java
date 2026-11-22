@@ -1,9 +1,6 @@
-package com.rdsos.wifianalyzer.iface;
+package com.rdsos.wifianalyzer.service.iface;
 
 import com.rdsos.wifianalyzer.exception.CommandFailedException;
-import com.rdsos.wifianalyzer.service.iface.InterfaceMode;
-import com.rdsos.wifianalyzer.service.iface.InterfaceService;
-import com.rdsos.wifianalyzer.service.iface.WifiInterface;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

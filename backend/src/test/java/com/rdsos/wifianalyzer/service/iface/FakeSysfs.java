@@ -1,4 +1,4 @@
-package com.rdsos.wifianalyzer.iface;
+package com.rdsos.wifianalyzer.service.iface;
 
 import com.rdsos.wifianalyzer.config.WifiProperties;
 

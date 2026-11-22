@@ -1,6 +1,5 @@
-package com.rdsos.wifianalyzer.iface;
+package com.rdsos.wifianalyzer.service.iface;
 
-import com.rdsos.wifianalyzer.service.iface.CommandRunner;
 import com.rdsos.wifianalyzer.service.iface.model.CommandResult;
 
 import java.util.ArrayList;
