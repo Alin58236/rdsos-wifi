@@ -11,7 +11,7 @@ Context from the Claude Code sessions so far: session 1 on the Windows desktop; 
 - Course: RDSOS (Retele Dinamice si Sisteme de Operare Specializate), master's year 2, semester 1.
 - Projects **1 (Wi-Fi Analyzer) and 2 (packet sniffer) are built as one app**. The goal is to do them well, with real monitor mode and manual parsing, so **Project 3 is not needed**. Project 3 is only required if monitor mode or manual management-frame parsing is skipped.
 - Stack: **Spring Boot backend (Java 25)** with hand-written byte parsers, and a **Vite + React + TS + shadcn/ui** frontend on localhost. Next.js was rejected: it's a local tool, so SSR/SEO add nothing. The website launch checklist from the user's global instructions doesn't apply.
-- Capture: **Java FFM API (`java.lang.foreign`) calling libpcap directly**, with no capture library (option A). Rejected: pcap4j (stale; its built-in parsers would cost grade) and raw `AF_PACKET` via FFM (possible later as an extra). *Option A was the recommendation and the user hasn't objected, but hasn't confirmed it explicitly either. Confirm before the backend scaffold.*
+- Capture: **Java FFM API (`java.lang.foreign`) calling libpcap directly**, with no capture library (option A). Rejected: pcap4j (stale; its built-in parsers would cost grade) and raw `AF_PACKET` via FFM (possible later as an extra). **Confirmed:** the user is going ahead with the FFM bindings (next session, §5).
 - Build tool: **Maven** with the Maven wrapper (`./mvnw`), the user's choice in session 3. FFM is final in Java 25 (no preview flag), but run with `--enable-native-access=ALL-UNNAMED` to avoid the restricted-method warning.
 - Full architecture, parsing gotchas and security rules are in `CLAUDE.md`.
 
@@ -97,8 +97,21 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - The live session runs from RAM; nothing installed there persists.
 
 ## 5. Next steps
+
+### Next session: FFM bindings for libpcap
+Agreed on 2026-11-22 (desktop session): the next discussion covers the **FFM bindings for libpcap**, using `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment` for `pcap_create`, `pcap_set_snaplen`, `pcap_set_timeout`, `pcap_activate`, `pcap_datalink`, `pcap_next_ex`, `pcap_stats` and `pcap_close`. The capture-loop design we agreed on is in `docs/info_for_project.md` §16. The user writes the code; Claude guides.
+
+How the user can prepare:
+- Read **JEP 454** (Foreign Function & Memory API), the sections on `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment`. The bindings are built from these.
+- Skim `man pcap_create` and `man pcap_next_ex` on the laptop (`libpcap-dev` is installed) for the C signatures we'll translate.
+- Work on **`feat/backend-scaffold`**, so the bindings sit next to `InterfaceService` and `ChannelHopper`.
+- Optional but useful: save a short `.pcap` from your own hotspot in monitor mode (`sudo tcpdump -i wlp4s0 -w test.pcap -c 200`). We'll use it as the fixture for the first parser.
+
+To resume, the user says "continuăm cu FFM".
+
+### Status / backlog
 1. **Dev toolchain: installed** in session 3. OpenJDK 25.0.5 (apt), libpcap-dev 1.10.4, Wireshark 4.2 (non-root capture left off), Node v26 LTS through nvm, IntelliJ IDEA 2026.3 and VS Code (snaps), `git`, `gh` (logged in), `iw`, `tcpdump`. `sudo` doesn't work from Claude Code's `!` prefix because there's no terminal; use `pkexec`, and add `DEBIAN_FRONTEND=noninteractive` for apt packages that ask questions.
-2. **Confirm the capture approach** (FFM → libpcap, no capture library, §2), then scaffold `backend/` and `frontend/`.
+2. **Backend scaffold: in progress** on `feat/backend-scaffold` (Maven, `CommandRunner`, `InterfaceService`, `ChannelHopper`, unit tests, `docs/PLAN.md`, `docs/CAPTURES.md`). Not merged into `main` yet. `frontend/` hasn't been started.
 3. **Capture fixtures from your own hotspot only** (roadmap step 0), now possible on 2.4 GHz.
 4. **Cleanup** (from Windows, admin), still pending: `bcdedit /delete {04a2b5f1-be2d-11ee-94b0-c915f0101598}`, delete the 8 GB `UBUNTU` FAT32 partition (`nvme0n1p4`, U:), and give the space back to D:.
 - Global Claude Code setup from `docs/claude-setup/` was installed on Ubuntu in session 3, with the vercel and figma plugins.
@@ -120,4 +133,5 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `docs/course-notes-summary.md`: what to read in `Course-notes.pdf` (about 25 of 110 pages), topic summaries, and external sources for the gaps (Radiotap, information elements, WPA2, IPv4, TCP, libpcap).
 - `Course-notes.pdf`: course material.
 - `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. Installed on the laptop's Windows side in session 2 and on its Ubuntu in session 3.
+- `docs/info_for_project.md`: the user's study notes, in Romanian with English terms. Project-relevant course content (p. 1–73) plus implementation notes: §15 which course tools to use, §16 libpcap capture and loop design.
 - `docs/monitor-test.sh`: monitor-mode hopper test (driver reload, channels 1–13 at 250 ms, beacon counts per real channel).
