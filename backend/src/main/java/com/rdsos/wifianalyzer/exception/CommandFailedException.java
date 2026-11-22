@@ -1,6 +1,6 @@
 package com.rdsos.wifianalyzer.exception;
 
-import com.rdsos.wifianalyzer.service.iface.model.CommandResult;
+import com.rdsos.wifianalyzer.model.CommandResult;
 
 import java.util.List;
 

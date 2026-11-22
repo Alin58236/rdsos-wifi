@@ -2,7 +2,7 @@ package com.rdsos.wifianalyzer.service.iface;
 
 import com.rdsos.wifianalyzer.config.WifiProperties;
 import com.rdsos.wifianalyzer.exception.CommandFailedException;
-import com.rdsos.wifianalyzer.service.iface.model.CommandResult;
+import com.rdsos.wifianalyzer.model.CommandResult;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

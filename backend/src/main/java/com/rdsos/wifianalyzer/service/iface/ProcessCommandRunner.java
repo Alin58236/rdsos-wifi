@@ -1,6 +1,6 @@
 package com.rdsos.wifianalyzer.service.iface;
 
-import com.rdsos.wifianalyzer.service.iface.model.CommandResult;
+import com.rdsos.wifianalyzer.model.CommandResult;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
