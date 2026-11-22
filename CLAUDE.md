@@ -12,23 +12,27 @@ Master's course project (RDSOS): a **Wi-Fi Analyzer** (similar to Android WiFi A
 
 ## Working mode
 
-**The user writes the code; Claude guides.** Explain, propose structure, point to reading, review, answer questions. Don't implement backend/frontend files unless the user asks for a specific piece. Explanations go in **Romanian, with technical terms left in English** (carrier, frame, header, beacon...); code and technical docs (CLAUDE.md, HANDOFF.md) stay in English; personal study notes (e.g. `docs/info_for_project.md`) are in Romanian. Session history and next steps are in `docs/HANDOFF.md`.
+**Split by grade weight** (chosen for the 7-day deadline; demo around 2026-11-27). The day-by-day plan is in `docs/PLAN.md`.
+- **The user writes the graded core:** `capture/` (FFM libpcap binding, `.pcap` file reader), every parser in `parse/` (Radiotap → HTTP), and `wifi/` (IEs, security, OUI, AP registry). Claude does **not** write these. Explain, point to the reference in `docs/PLAN.md`, write nothing beyond short snippets, and review.
+- **Claude writes the plumbing:** `config/`, `iface/` (commands, mode switch, channel hopper), `CaptureService`, `api/` (REST/WebSocket), and the whole `frontend/`. TDD applies to these as well.
+- Explanations go in **Romanian, with technical terms left in English** (carrier, frame, header, beacon...); code and technical docs (CLAUDE.md, HANDOFF.md) stay in English; personal study notes (e.g. `docs/info_for_project.md`) are in Romanian.
+- Session history and next steps are in `docs/HANDOFF.md`.
 
 ## Status
 
-Pre-scaffold. The layout and commands below are the agreed target; update this file once they exist.
+Backend scaffolded (Spring Boot 4.2.0, Java 25, Maven): `config/` and `iface/` exist with tests. The frontend and the user's packages are not written yet.
 
 **Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop, dual booting Ubuntu 24.04 (kernel 7.0).
 
 **Monitor mode status: works on both bands with the built-in card.** The laptop's Realtek RTL8822CE (in-tree `rtw88`, interface `wlp4s0`) hops all 2.4 GHz channels 1–13 at 250 ms, **but only after the driver module is reloaded** before switching to monitor mode. Without the reload, the radio stays stuck on the band of the boot-time managed connection (5 GHz channel 36) and receives nothing on 2.4 GHz. After the reload, switching between 2.4 GHz and 5 GHz works. Test results are in `docs/HANDOFF.md` §4. `iw list` showing `monitor` is not proof of support (mac80211 lists it for almost every card); only capturing beacons from several SSIDs on each channel counts.
 
-## Stack and layout (target)
+## Stack and layout
 
-- `backend/`: Spring Boot, **Java 25**, **Maven** (wrapper `./mvnw`). Calls libpcap through the **Java FFM API** (`java.lang.foreign`) with no capture library.
+- `backend/`: Spring Boot, **Java 25**, **Maven** (wrapper `./mvnw`). Calls libpcap through the **Java FFM API** (`java.lang.foreign`) with no capture library. Base package `com.rdsos.wifianalyzer`; settings under `wifi.*` in `application.properties` (bound to `config/WifiProperties`).
 - `frontend/`: Vite + React + TypeScript + shadcn/ui. A localhost tool, so no Next.js and no website launch checklist.
-- `docs/`: requirements and notes.
+- `docs/`: requirements, plan (`PLAN.md`), handoff and notes.
 
-## Commands (target)
+## Commands
 
 ```bash
 # backend (capture needs root or CAP_NET_RAW+CAP_NET_ADMIN)
@@ -51,11 +55,11 @@ sudo tcpdump -i <if> -y IEEE802_11_RADIO -c 20   # sanity check: beacons visible
 ## Architecture
 
 ### Capture pipeline
-1. `capture/`: FFM bindings to libpcap (`pcap_create`, `pcap_set_rfmon`, `pcap_activate`, `pcap_datalink`, `pcap_next_ex`, `pcap_close`). A dedicated capture thread copies each frame into `byte[]` together with its timestamp and **link type**, then writes it to a bounded ring buffer.
+1. `capture/`: a `CaptureSource` interface with two implementations: `PcapLiveSource` (FFM bindings to libpcap: `pcap_create`, `pcap_set_snaplen`/`promisc`/`timeout`/`immediate_mode`, `pcap_activate`, `pcap_datalink`, `pcap_next_ex`, `pcap_close`) and `PcapFileSource` (hand-written `.pcap` reader for tests, desktop development and as a demo fallback). **Don't call `pcap_set_rfmon`**: `iface/InterfaceService` sets monitor mode itself, and rfmon can create a separate `monN` interface. A dedicated capture thread copies each frame into `byte[]` together with its timestamp and **link type**, then writes it to a bounded ring buffer.
 2. Dispatch is by link type, which depends on the interface mode:
    - `127` `DLT_IEEE802_11_RADIO` (Monitor): Radiotap → 802.11.
    - `1` `DLT_EN10MB` (Managed): Ethernet II. The kernel strips the 802.11 header in managed mode, so the UI must say "Ethernet header (managed mode)" and not show it as 802.11.
-3. `parse/`: one parser per layer, each a pure function from `(byte[], offset)` to an immutable record plus the next offset. Covers Radiotap, 802.11 (management/data frame control, addresses by ToDS/FromDS), LLC/SNAP, Ethernet, IPv4 (all fields, options by IHL), TCP (all fields, options by data offset), and HTTP (ASCII payload when either port is 80).
+3. `parse/`: one parser per layer, each a pure function from `(byte[], offset)` to an immutable `@Value` object plus the next offset. Covers Radiotap, 802.11 (management/data frame control, addresses by ToDS/FromDS), LLC/SNAP, Ethernet, IPv4 (all fields, options by IHL), TCP (all fields, options by data offset), and HTTP (ASCII payload when either port is 80).
 4. `wifi/`: management frames (beacon, probe response) update an AP registry keyed by BSSID:
    - SSID from IE 0; channel from IE 3, falling back to the Radiotap frequency only if IE 3 is missing. Beacons from neighbouring channels leak in (tuned to 11, you also see `CH: 10` beacons), so the tuned channel is not the AP's channel.
    - Signal from the Radiotap antenna signal (dBm). The RTL8822CE sends three of these fields (combined, antenna 0, antenna 1) across the extended `present` bitmasks; use the first, combined one. Antenna 0 often reads −100.
@@ -74,6 +78,12 @@ sudo tcpdump -i <if> -y IEEE802_11_RADIO -c 20   # sanity check: beacons visible
 - AP list: signal icon colour by RSSI (green ≥ −60 dBm, yellow −60…−75, red < −75), plus SSID, BSSID, vendor, dBm, channel, MHz and security.
 - Channel graph: **custom SVG** with a curve per AP spanning about ±2 channels around its centre and height = RSSI, the same look as the Android app.
 - Packet view: virtualized list, a detail pane with a layer tree, and a hex dump.
+
+## Conventions (backend)
+- **Data classes: Lombok, no Java records.** Use `@Value` for anything that doesn't change after creation (parsed headers, `RawFrame`, DTOs, results), adding `@Builder` for wide headers such as IPv4 and TCP. Use `@Data` only where mutability is the point: `@ConfigurationProperties` classes, or mutable state that is only touched under a lock. Parsed packets cross threads (decoder → WebSocket), so they must be `@Value`.
+- **Logging: SLF4J through Lombok only.** Annotate the class with `@Slf4j` and use the generated `log` field. No `LoggerFactory.getLogger(...)`, no `System.out`/`System.err`, no other logging API.
+- Lombok is wired into `maven-compiler-plugin` as an annotation processor, because JDK 23+ doesn't pick processors up from the classpath. In IntelliJ, enable annotation processing (Settings → Build → Compiler → Annotation Processors) if `log` shows as unresolved.
+- Never log credentials, full packet payloads or third-party SSIDs/MACs at INFO level or above.
 
 ## Testing
 
