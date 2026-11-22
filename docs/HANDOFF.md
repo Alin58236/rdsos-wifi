@@ -1,10 +1,11 @@
-# Session Handoff — 2026-11-20
+# Session Handoff — 2026-11-22
 
 Context from the Claude Code sessions so far: session 1 on the Windows desktop; session 2 on the laptop (Windows side), which prepared the no-USB live boot; session 3 on the laptop's installed Ubuntu, which fixed 2.4 GHz monitor mode (§4).
 **New session: read this file, `CLAUDE.md`, `docs/requirements.md` and `docs/course-notes-summary.md` first.**
 
 ## 1. Who does what
-- **The user writes all the code.** Claude guides: explains concepts, suggests structure, points to reading, reviews code, answers questions. Claude does not implement backend/frontend files unless asked for a specific piece. Short illustrative snippets in explanations are fine; docs and notes are fine.
+- **Split by grade weight (since session 3, because of the 7-day deadline).** The user writes the graded core: FFM capture, the `.pcap` reader, all parsers, and the AP/security logic. Claude writes the plumbing (Spring config, `iface/`, `CaptureService`, REST/WebSocket, the whole React frontend) and reviews the user's code. Details are in `CLAUDE.md` → Working mode, and the schedule is in `docs/PLAN.md`.
+- `CLAUDE.md` and this file stay **tracked in git**: they are how the desktop and laptop sessions stay in sync.
 - The user wants concise, direct answers and step-by-step guidance for machine setup.
 
 ## 2. Project decisions so far
@@ -99,7 +100,7 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 ## 5. Next steps
 
 ### Next session: FFM bindings for libpcap
-Agreed on 2026-11-22 (desktop session): the next discussion covers the **FFM bindings for libpcap**, using `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment` for `pcap_create`, `pcap_set_snaplen`, `pcap_set_timeout`, `pcap_activate`, `pcap_datalink`, `pcap_next_ex`, `pcap_stats` and `pcap_close`. The capture-loop design we agreed on is in `docs/info_for_project.md` §16. The user writes the code; Claude guides.
+Agreed on 2026-11-22 (desktop session): the next discussion covers the **FFM bindings for libpcap**, using `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment` for `pcap_create`, `pcap_set_snaplen`, `pcap_set_timeout`, `pcap_activate`, `pcap_datalink`, `pcap_next_ex`, `pcap_stats` and `pcap_close`. The capture-loop design we agreed on is in `docs/info_for_project.md` §16. The bindings are graded core, so the user writes them; Claude guides and reviews.
 
 How the user can prepare:
 - Read **JEP 454** (Foreign Function & Memory API), the sections on `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment`. The bindings are built from these.
@@ -110,6 +111,7 @@ How the user can prepare:
 To resume, the user says "continuăm cu FFM".
 
 ### Status / backlog
+**The demo is around Fri 2026-11-27. The day-by-day plan, the cut order and the technical reference for every parser are in `docs/PLAN.md`.** As of 2026-11-22 the user's Day 1 items (`ByteReader`, fixtures from `docs/CAPTURES.md`) are still open, about one day behind; the FFM bindings were pulled forward from Day 4.
 1. **Dev toolchain: installed** in session 3. OpenJDK 25.0.5 (apt), libpcap-dev 1.10.4, Wireshark 4.2 (non-root capture left off), Node v26 LTS through nvm, IntelliJ IDEA 2026.3 and VS Code (snaps), `git`, `gh` (logged in), `iw`, `tcpdump`. `sudo` doesn't work from Claude Code's `!` prefix because there's no terminal; use `pkexec`, and add `DEBIAN_FRONTEND=noninteractive` for apt packages that ask questions.
 2. **Backend scaffold: in progress** on `feat/backend-scaffold` (Maven, `CommandRunner`, `InterfaceService`, `ChannelHopper`, unit tests, `docs/PLAN.md`, `docs/CAPTURES.md`). Not merged into `main` yet. `frontend/` hasn't been started.
 3. **Capture fixtures from your own hotspot only** (roadmap step 0), now possible on 2.4 GHz.
