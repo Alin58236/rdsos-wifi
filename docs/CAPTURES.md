@@ -8,8 +8,8 @@ Files go to `backend/src/test/resources/fixtures/`:
 
 | File | Source | Used to test |
 |---|---|---|
-| `beacons-wpa2.pcap` | iPhone hotspot, monitor mode | Radiotap, 802.11 management header, IEs, WPA2 security, channel |
-| `wpa2-data.pcap` | iPhone hotspot, monitor mode | Data frames with the Protected bit → "Encrypted" |
+| `beacons-wpa2.pcap` | Your own router (2.4 GHz), monitor mode | Radiotap, 802.11 management header, IEs, WPA2 security, channel |
+| `wpa2-data.pcap` | Your own router + a second device, monitor mode | Data frames with the Protected bit → "Encrypted" |
 | `open-http.pcap` | Laptop as an open AP + `mon0` | Monitor-mode path: Radiotap → 802.11 → LLC/SNAP → IPv4 → TCP → HTTP |
 | `managed-http.pcap` | Laptop connected normally | Managed-mode path: Ethernet → IPv4 → TCP → HTTP |
 
@@ -17,34 +17,19 @@ Files go to `backend/src/test/resources/fixtures/`:
 cd ~/Desktop/rdsos-wifi/backend/src/test/resources && mkdir -p fixtures && cd fixtures
 ```
 
-## A. iPhone hotspot (WPA2), monitor mode
-1. iPhone: Settings → Personal Hotspot → on, and **Maximize Compatibility on** (this forces 2.4 GHz).
-2. Find the hotspot's BSSID and channel while the laptop is still in managed mode:
+## A. Your own router (2.4 GHz), monitor mode
+Use your **own router's 2.4 GHz network**, not a phone hotspot: **an iPhone hotspot sends no beacons while no client is connected** (it only answers active scans), and on 2026-11-22 it sent almost nothing on its advertised channel even with an iPad connected. A router beacons continuously.
+
+The script finds the network's current BSSID and channel, switches to monitor mode (with the driver reload), captures 50 beacons and 200 data frames filtered on that BSSID, prints diagnostics if nothing arrives, and always restores managed mode.
+
+1. Connect a **second device** (iPad, phone) to the router's **2.4 GHz** network and keep it busy (e.g. play a video). Check it hasn't switched to the 5 GHz network.
+2. Run it in a normal terminal (no internet while it runs, about 1 minute):
    ```bash
-   nmcli -f SSID,BSSID,CHAN dev wifi list
-   B=xx:xx:xx:xx:xx:xx; CH=6        # fill in from the line with your iPhone's name
+   sudo bash docs/capture-fixtures.sh <your-2.4GHz-SSID>
    ```
-3. Monitor mode (the driver reload is required on this laptop):
-   ```bash
-   sudo modprobe -r rtw88_8822ce && sudo modprobe rtw88_8822ce && sleep 3
-   sudo nmcli dev set wlp4s0 managed no
-   sudo ip link set wlp4s0 down && sudo iw dev wlp4s0 set type monitor && sudo ip link set wlp4s0 up
-   sudo iw dev wlp4s0 set channel $CH
-   ```
-4. Beacons (finishes on its own after 50):
-   ```bash
-   sudo tcpdump -i wlp4s0 -w beacons-wpa2.pcap -c 50 "wlan addr2 $B and type mgt subtype beacon"
-   ```
-5. Encrypted data: connect a **second device** (iPad, another phone) to the hotspot and keep it loading pages, then:
-   ```bash
-   sudo tcpdump -i wlp4s0 -w wpa2-data.pcap -c 200 "type data and (wlan addr1 $B or wlan addr2 $B or wlan addr3 $B)"
-   ```
-   If you have no second device, skip this; the "Encrypted" case can be tested with hand-built bytes.
-6. Back to managed mode:
-   ```bash
-   sudo ip link set wlp4s0 down && sudo iw dev wlp4s0 set type managed && sudo ip link set wlp4s0 up
-   sudo nmcli dev set wlp4s0 managed yes
-   ```
+3. Read `~/capture-fixtures.log`: it should end with `saved 50 beacons` and `saved 200 data frames`.
+
+Captured on 2026-11-22 (router `ArtemisZone`, channel 10): Radiotap Flags has FCS (0x10); security is mixed WPA/WPA2-Personal (RSN IE 48 with AKM 2 and TKIP group cipher, plus WPA vendor IE 221); 175 of the 200 data frames are Protected.
 
 ## B. Managed mode HTTP
 1. Connect the laptop to Wi-Fi as usual (home network or the iPhone hotspot).
