@@ -96,6 +96,60 @@ class InterfaceServiceTest {
         assertThat(runner.commands).containsExactly(List.of("iw", "dev", "wlp4s0", "set", "channel", "6"));
     }
 
+    @Test
+    void shutdownRestoresInterfacesSwitchedToMonitor() {
+        service.switchToMonitor("wlp4s0");
+        runner.commands.clear();
+
+        service.restoreManagedMode();
+
+        assertThat(runner.joined()).containsExactly(
+                "ip link set wlp4s0 down",
+                "iw dev wlp4s0 set type managed",
+                "ip link set wlp4s0 up",
+                "nmcli dev set wlp4s0 managed yes");
+    }
+
+    @Test
+    void shutdownDoesNothingWhenNoInterfaceWasSwitched() {
+        service.restoreManagedMode();
+
+        assertThat(runner.commands).isEmpty();
+    }
+
+    @Test
+    void shutdownSkipsInterfacesAlreadySwitchedBackToManaged() {
+        service.switchToMonitor("wlp4s0");
+        service.switchToManaged("wlp4s0");
+        runner.commands.clear();
+
+        service.restoreManagedMode();
+
+        assertThat(runner.commands).isEmpty();
+    }
+
+    @Test
+    void shutdownRestoresAnInterfaceLeftHalfwayByAFailedSwitch() {
+        runner.failWhen(command -> command.contains("monitor"));
+        assertThatThrownBy(() -> service.switchToMonitor("wlp4s0")).isInstanceOf(CommandFailedException.class);
+        runner.failWhen(command -> false);
+        runner.commands.clear();
+
+        service.restoreManagedMode();
+
+        assertThat(runner.joined()).last().isEqualTo("nmcli dev set wlp4s0 managed yes");
+    }
+
+    @Test
+    void failedRestoreDoesNotThrowSoShutdownCanFinish() {
+        service.switchToMonitor("wlp4s0");
+        runner.failWhen(command -> command.contains("managed"));
+
+        service.restoreManagedMode();
+
+        assertThat(runner.joined()).last().isEqualTo("iw dev wlp4s0 set type managed");
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {0, 14, 36, -1})
     void setChannelRejectsChannelsOutsideTheConfiguredList(int channel) {

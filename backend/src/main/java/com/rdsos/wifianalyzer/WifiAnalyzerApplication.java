@@ -1,40 +1,37 @@
 package com.rdsos.wifianalyzer;
 
-import com.rdsos.wifianalyzer.service.iface.CommandRunner;
+import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.iface.InterfaceService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.context.annotation.Bean;
-
-import java.util.List;
+import org.springframework.context.annotation.Profile;
 
 @Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
-@RequiredArgsConstructor
 public class WifiAnalyzerApplication {
-
-	private final InterfaceService interfaceService;
-	private final CommandRunner runner;
 
 	public static void main(String[] args) {
 		SpringApplication.run(WifiAnalyzerApplication.class, args);
 	}
 
-
+	/** Manual test: monitor mode + channel hopping. Runs only with --spring.profiles.active=manual (needs root). */
 	@Bean
-	CommandLineRunner cmdLineRunnerStartup(InterfaceService interfaceService, CommandRunner runner){
-		return args ->
-		{
-            log.info("testing interface service {}", interfaceService.listWirelessInterfaces());
-            log.info("testing runner {}", runner.run(List.of("iw", "dev")).getOutput());
+	@Profile("manual")
+	CommandLineRunner manualMonitorTest(InterfaceService interfaceService, ChannelHopper channelHopper) {
+		return args -> {
+			String name = interfaceService.listWirelessInterfaces().getFirst().getName();
+			interfaceService.switchToMonitor(name);
+			channelHopper.start(name);
 
+			while (channelHopper.isRunning()) {
+				log.info("Current channel: {}", channelHopper.currentChannel());
+				Thread.sleep(1000);
+			}
 		};
-
 	}
-
 }
