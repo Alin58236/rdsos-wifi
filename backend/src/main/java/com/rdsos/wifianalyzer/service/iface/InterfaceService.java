@@ -3,6 +3,7 @@ package com.rdsos.wifianalyzer.service.iface;
 import com.rdsos.wifianalyzer.config.WifiProperties;
 import com.rdsos.wifianalyzer.exception.CommandFailedException;
 import com.rdsos.wifianalyzer.service.iface.model.CommandResult;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -31,6 +34,8 @@ public class InterfaceService {
     private final CommandRunner runner;
     private final WifiProperties properties;
     private final Path sysClassNet;
+    /** Interfaces this app switched to monitor mode and has not yet returned to managed mode. */
+    private final Set<String> ifacesSwitchedToMonitor = ConcurrentHashMap.newKeySet();
 
     public InterfaceService(CommandRunner runner, WifiProperties properties) {
         this.runner = runner;
@@ -62,6 +67,8 @@ public class InterfaceService {
      */
     public void switchToMonitor(String interfaceName) {
         requireWireless(interfaceName);
+        // Marked before the first command: a switch that fails halfway also leaves the interface without internet.
+        ifacesSwitchedToMonitor.add(interfaceName);
         String module = properties.getDriverModule();
         boolean reload = module != null && !module.isBlank();
         if (reload) {
@@ -88,7 +95,23 @@ public class InterfaceService {
         runner.runChecked(List.of("iw", "dev", interfaceName, "set", "type", "managed"));
         runner.runChecked(List.of("ip", "link", "set", interfaceName, "up"));
         runner.runChecked(List.of("nmcli", "dev", "set", interfaceName, "managed", "yes"));
+        ifacesSwitchedToMonitor.remove(interfaceName);
         log.info("{} is back in managed mode", interfaceName);
+    }
+
+    /**
+     * On shutdown it hands every interface this app took away from NetworkManager back to it,
+     * so the internet connection returns. Failures are logged rather than thrown so shutdown can finish.
+     */
+    @PreDestroy
+    public void restoreManagedMode() {
+        for (String interfaceName : List.copyOf(ifacesSwitchedToMonitor)) {
+            try {
+                switchToManaged(interfaceName);
+            } catch (RuntimeException e) {
+                log.warn("Could not restore {} to managed mode: {}", interfaceName, e.getMessage());
+            }
+        }
     }
 
     public void setChannel(String interfaceName, int channel) {
