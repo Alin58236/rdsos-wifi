@@ -2,6 +2,7 @@ package com.rdsos.wifianalyzer;
 
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.iface.InterfaceService;
+import com.rdsos.wifianalyzer.service.parser.PcapFileReader;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -24,14 +25,14 @@ public class WifiAnalyzerApplication {
 	@Profile("manual")
 	CommandLineRunner manualMonitorTest(InterfaceService interfaceService, ChannelHopper channelHopper) {
 		return args -> {
-			String name = interfaceService.listWirelessInterfaces().getFirst().getName();
-			interfaceService.switchToMonitor(name);
-			channelHopper.start(name);
-
-			while (channelHopper.isRunning()) {
-				log.info("Current channel: {}", channelHopper.currentChannel());
-				Thread.sleep(1000);
-			}
+//			String name = interfaceService.listWirelessInterfaces().getFirst().getName();
+//			interfaceService.switchToMonitor(name);
+//			channelHopper.start(name);
+//
+//			while (channelHopper.isRunning()) {
+//				log.info("Current channel: {}", channelHopper.currentChannel());
+//				Thread.sleep(1000);
+//			}
 		};
 	}
 }
