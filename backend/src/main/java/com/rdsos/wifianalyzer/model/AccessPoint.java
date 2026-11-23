@@ -5,8 +5,8 @@ import lombok.Value;
 @Value
 public class AccessPoint {
 
-    String BSSID;
-    String SSID;
+    String bssid;
+    String ssid;
     int channel;
     Integer frequencyMHz;
     Integer signalDBm;
