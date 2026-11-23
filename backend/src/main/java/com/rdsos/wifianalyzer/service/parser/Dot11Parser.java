@@ -9,7 +9,7 @@ public class Dot11Parser {
 
     public Dot11Header parse(byte[] data, int offset){
 
-        if(offset+24 > data.length){
+        if(offset+10 > data.length){
             throw new IllegalArgumentException("Truncated data segment for 802.11 headder");
         }
 
@@ -25,6 +25,31 @@ public class Dot11Parser {
         String source = null;
         String BSSID = null;
         int headerLength = 0;
+
+
+        if(isControlFrame(type)){
+            if(isACK(subtype) || isCTS(subtype)){
+                String addr1 = ByteReader.mac(data, offset + 4);
+                destination=addr1;
+                headerLength=10;
+                return new Dot11Header(type, subtype, toDs, fromDs, protectedFrame,
+                        List.of(addr1), null, null, destination, headerLength);
+
+            } else if(offset+16 > data.length){
+                throw new IllegalArgumentException("This is an incomplete Control Frame");
+            } else {
+                String addr1 = ByteReader.mac(data, offset + 4);
+                String addr2 = ByteReader.mac(data, offset + 10);
+                headerLength=16;
+                return new Dot11Header(type,subtype,toDs,fromDs,protectedFrame,List.of(addr1,addr2),null,addr2,addr1,headerLength);
+            }
+        }
+
+
+
+        if (offset + 24 > data.length) {
+            throw new IllegalArgumentException("Truncated 802.11 management/data header");
+        }
 
         String addr1 = ByteReader.mac(data, offset + 4);
         String addr2 = ByteReader.mac(data, offset + 10);
@@ -60,6 +85,18 @@ public class Dot11Parser {
         return new Dot11Header(type,subtype,toDs,fromDs,protectedFrame, List.of(addr1,addr2,addr3),BSSID,source,destination,headerLength);
 
 
+    }
+
+    private boolean isCTS(int subtype) {
+        return subtype==12;
+    }
+
+    private boolean isACK(int subtype) {
+        return subtype==13;
+    }
+
+    private boolean isControlFrame(int type) {
+        return type==1;
     }
 
 }
