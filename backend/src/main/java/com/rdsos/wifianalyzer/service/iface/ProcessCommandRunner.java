@@ -20,7 +20,7 @@ public class ProcessCommandRunner implements CommandRunner {
 
     @Override
     public CommandResult run(List<String> command) {
-        log.debug("Running {}", command);
+        log.info("Running {}", command);
         try {
             Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
             // Read output concurrently so a longer command doesnt block on pipes.

@@ -34,7 +34,7 @@ public class BeaconParserTest {
 
             assertThat(result.getBeaconInterval()).isEqualTo(100);
             assertThat(result.isPrivacy()).isTrue();
-            assertThat(result.getSsid()).isEqualTo("ArtemisZone");
+            assertThat(result.getSsid()).isEqualTo("HomeNetwork");
             assertThat(result.getChannel()).isEqualTo(10);
             assertThat(result.getIes()).hasSize(17);
         }

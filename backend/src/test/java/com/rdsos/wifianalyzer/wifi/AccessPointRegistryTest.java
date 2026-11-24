@@ -33,7 +33,7 @@ public class AccessPointRegistryTest {
 
         List<AccessPoint> result = registry.snapshot(1000);
 
-        AccessPoint expected = new AccessPoint(ROUTER,"ArtemisZone",10,2457,-90,"WPA/WPA2-PSK","TP-LINK TECHNOLOGIES CO.,LTD.",1000);
+        AccessPoint expected = new AccessPoint(ROUTER,"HomeNetwork",10,2457,-90,"WPA/WPA2-PSK","TP-LINK TECHNOLOGIES CO.,LTD.",1000);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0)).isEqualTo(expected);

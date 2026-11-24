@@ -3,7 +3,7 @@
 import type { AccessPoint, UpdateMessage } from './types'
 
 const SAMPLE_ACCESS_POINTS: AccessPoint[] = [
-  { bssid: '50:d4:f7:03:12:f3', ssid: 'ArtemisZone', channel: 10, frequencyMHz: 2457, signalDBm: -68, security: 'WPA/WPA2-PSK', vendor: 'TP-LINK TECHNOLOGIES CO.,LTD.', lastSeenMillis: 0 },
+  { bssid: '50:d4:f7:03:12:f3', ssid: 'HomeNetwork', channel: 10, frequencyMHz: 2457, signalDBm: -68, security: 'WPA/WPA2-PSK', vendor: 'TP-LINK TECHNOLOGIES CO.,LTD.', lastSeenMillis: 0 },
   { bssid: '50:d4:f7:11:22:33', ssid: 'PoseidonZone', channel: 6, frequencyMHz: 2437, signalDBm: -45, security: 'WPA2-PSK', vendor: 'TP-LINK TECHNOLOGIES CO.,LTD.', lastSeenMillis: 0 },
   { bssid: 'ae:80:66:e8:2f:e3', ssid: 'iPhone', channel: 1, frequencyMHz: 2412, signalDBm: -58, security: 'WPA2/WPA3', vendor: 'Local/Unknown', lastSeenMillis: 0 },
   { bssid: '00:1a:11:aa:bb:cc', ssid: '', channel: 11, frequencyMHz: 2462, signalDBm: -82, security: 'Open', vendor: 'Google, Inc.', lastSeenMillis: 0 },

@@ -99,10 +99,6 @@ public class InterfaceService {
         log.info("{} is back in managed mode", interfaceName);
     }
 
-    /**
-     * On shutdown it hands every interface this app took away from NetworkManager back to it,
-     * so the internet connection returns. Failures are logged rather than thrown so shutdown can finish.
-     */
     @PreDestroy
     public void restoreManagedMode() {
         for (String interfaceName : List.copyOf(ifacesSwitchedToMonitor)) {
@@ -147,6 +143,7 @@ public class InterfaceService {
     private void awaitInterface(String interfaceName) {
         for (int i = 0; i < REAPPEAR_ATTEMPTS; i++) {
             if (Files.isDirectory(sysClassNet.resolve(interfaceName).resolve("phy80211"))) {
+                log.info("Found interface");
                 return;
             }
             sleep();

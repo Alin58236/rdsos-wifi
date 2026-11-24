@@ -65,10 +65,12 @@ public class ChannelHopper {
         pinnedChannel = channel;
         index = channels.indexOf(channel);
         currentChannel = channel;
+        log.info("Successfully pinned {} channel to {}",interfaceName,channel);
     }
 
     public synchronized void unpin() {
         pinnedChannel = null;
+        log.info("Unpinned");
     }
 
     public synchronized Optional<Integer> pinnedChannel() {

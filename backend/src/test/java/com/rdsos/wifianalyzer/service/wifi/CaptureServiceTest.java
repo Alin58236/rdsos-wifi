@@ -34,7 +34,7 @@ public class CaptureServiceTest {
         List<AccessPoint> result = registry.snapshot(System.currentTimeMillis());
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getSsid()).isEqualTo("ArtemisZone");
+        assertThat(result.get(0).getSsid()).isEqualTo("HomeNetwork");
         assertThat(captureService.getFrames()).isEqualTo(1);
         assertThat(captureService.getParseErrors()).isEqualTo(0);
     }
@@ -69,7 +69,7 @@ public class CaptureServiceTest {
             assertThat(captureService.getSource()).isEqualTo("FILE");
             assertThat(captureService.getSourceName()).isEqualTo("beacons-wpa2.pcap");
 
-            // wait at most 2 seconds for the capture thread to put ArtemisZone in the registry
+            // wait at most 2 seconds for the capture thread to put HomeNetwork in the registry
             waitUntilTheRegistryHasAnAp(registry, 2000);
             assertThat(registry.snapshot(System.currentTimeMillis())).hasSize(1);
         } finally {

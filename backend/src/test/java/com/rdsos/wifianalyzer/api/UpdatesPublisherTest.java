@@ -32,7 +32,7 @@ class UpdatesPublisherTest {
 
     private final UpdatesPublisher publisher = new UpdatesPublisher(registry, channelHopper, captureService, webSocketHandler, jsonMapper);
 
-    private final AccessPoint artemisZone = new AccessPoint("50:d4:f7:03:12:f3", "ArtemisZone", 10, 2457, -68,
+    private final AccessPoint artemisZone = new AccessPoint("50:d4:f7:03:12:f3", "HomeNetwork", 10, 2457, -68,
             "WPA/WPA2-PSK", "TP-LINK TECHNOLOGIES CO.,LTD.", 1000);
 
     @Test
@@ -50,7 +50,7 @@ class UpdatesPublisherTest {
         JsonNode message = jsonMapper.readTree(sent.getValue());
 
         assertThat(message.get("aps").get(0).get("bssid").asString()).isEqualTo("50:d4:f7:03:12:f3");
-        assertThat(message.get("aps").get(0).get("ssid").asString()).isEqualTo("ArtemisZone");
+        assertThat(message.get("aps").get(0).get("ssid").asString()).isEqualTo("HomeNetwork");
         assertThat(message.get("aps").get(0).get("signalDBm").asInt()).isEqualTo(-68);
         assertThat(message.get("status").get("currentChannel").asInt()).isEqualTo(6);
         assertThat(message.get("status").get("pinnedChannel").isNull()).isTrue();

@@ -39,6 +39,7 @@ public class CaptureService {
 
     public synchronized void startReplay(Path file){
 
+        log.info("Start replaying from file "+file);
         if (running) {
             throw new IllegalStateException("A capture is already running");
         }
@@ -46,10 +47,17 @@ public class CaptureService {
         sourceType = "FILE";
         sourceName = file.getFileName().toString();
         running = true;
-        captureThread = Thread.ofPlatform().name("capture").daemon().start(() -> fileReplayLoop(file));
+        log.info("Creating the capture thread.");
+        captureThread = Thread.ofPlatform().name("capture").daemon().start(() -> {
+            try {
+                fileReplayLoop(file);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
-    private void fileReplayLoop(Path file){
+    private void fileReplayLoop(Path file) throws InterruptedException {
 
         while (running) {
             int framesInThisPass = 0;
@@ -60,6 +68,7 @@ public class CaptureService {
                     processFrame(frame);
                     framesInThisPass++;
                     frame = source.next();
+                    Thread.sleep(100);
                 }
             } catch (RuntimeException e) {
                 log.warn("Replay of {} stopped: {}", file.getFileName(), e.getMessage());
@@ -120,6 +129,7 @@ public class CaptureService {
     @PreDestroy
     public synchronized void stop() {
 
+        log.info("Stopping the capture thread.");
         running = false;
 
         if (captureThread != null) {

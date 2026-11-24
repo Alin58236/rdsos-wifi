@@ -44,7 +44,7 @@ public class IEParserTest {
             List<IE> result = ieParser.parse(data, offset, end);
 
             assertThat(result).hasSize(17);
-            assertThat(result.get(0)).isEqualTo(new IE(0,76,11));   // SSID "ArtemisZone"
+            assertThat(result.get(0)).isEqualTo(new IE(0,76,11));   // SSID "HomeNetwork"
             assertThat(result.get(2)).isEqualTo(new IE(3,99,1));    // DS Parameter Set, channel 10
             assertThat(result.get(6)).isEqualTo(new IE(48,117,24)); // RSN
 
