@@ -1,5 +1,7 @@
 package com.rdsos.wifianalyzer.util;
 
+import org.springframework.stereotype.Component;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,16 +11,24 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.zip.GZIPInputStream;
 
-
+@Component
 public class OuiDatabase {
 
     private static final String HEX_MARKER = "(hex)";
+    private static final String BUNDLED_FILE = "/oui.txt.gz";
 
     private final Map<String, String> vendors = new HashMap<>();
 
-    public OuiDatabase(InputStream in) {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+    public OuiDatabase() throws IOException {
+        this(new GZIPInputStream(Objects.requireNonNull(
+                OuiDatabase.class.getResourceAsStream(BUNDLED_FILE), BUNDLED_FILE + " is missing from the classpath")));
+    }
+
+    public OuiDatabase(InputStream testsInputStream) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(testsInputStream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 int marker = line.indexOf(HEX_MARKER);

@@ -58,4 +58,12 @@ public class OuiDatabaseTest {
             assertThat(database.vendor("50:d4:f7:03:12:f3")).isEqualTo("TP-LINK TECHNOLOGIES CO.,LTD.");
         }
     }
+
+    @Test
+    void givenTheConstructorSpringUses_ThenTheBundledFileIsLoaded() throws IOException {
+
+        OuiDatabase database = new OuiDatabase();
+
+        assertThat(database.vendor("50:d4:f7:03:12:f3")).isEqualTo("TP-LINK TECHNOLOGIES CO.,LTD.");
+    }
 }
