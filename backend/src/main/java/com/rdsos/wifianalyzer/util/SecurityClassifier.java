@@ -1,8 +1,7 @@
-package com.rdsos.wifianalyzer.service.wifi;
+package com.rdsos.wifianalyzer.util;
 
 import com.rdsos.wifianalyzer.model.Beacon;
 import com.rdsos.wifianalyzer.model.IE;
-import com.rdsos.wifianalyzer.util.ByteReader;
 
 import java.util.ArrayList;
 import java.util.List;
