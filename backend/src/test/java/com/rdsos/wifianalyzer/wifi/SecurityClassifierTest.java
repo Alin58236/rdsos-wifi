@@ -4,7 +4,7 @@ import com.rdsos.wifianalyzer.model.Beacon;
 import com.rdsos.wifianalyzer.model.Dot11Header;
 import com.rdsos.wifianalyzer.model.RadioTapHeader;
 import com.rdsos.wifianalyzer.service.parser.*;
-import com.rdsos.wifianalyzer.service.wifi.SecurityClassifier;
+import com.rdsos.wifianalyzer.util.SecurityClassifier;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
