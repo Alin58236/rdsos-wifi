@@ -39,7 +39,7 @@ public class CaptureService {
 
     public synchronized void startReplay(Path file){
 
-        log.info("Start replaying from file "+file);
+        log.info("Start replaying from file {}", file);
         if (running) {
             throw new IllegalStateException("A capture is already running");
         }
@@ -52,7 +52,8 @@ public class CaptureService {
             try {
                 fileReplayLoop(file);
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                running = false;
+                Thread.currentThread().interrupt();
             }
         });
     }
