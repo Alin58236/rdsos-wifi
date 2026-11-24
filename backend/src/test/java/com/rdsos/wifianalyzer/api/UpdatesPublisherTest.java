@@ -3,6 +3,7 @@ package com.rdsos.wifianalyzer.api;
 import com.rdsos.wifianalyzer.model.AccessPoint;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.wifi.AccessPointRegistry;
+import com.rdsos.wifianalyzer.service.wifi.CaptureService;
 import com.rdsos.wifianalyzer.ws.UpdatesWebSocketHandler;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,7 +28,9 @@ class UpdatesPublisherTest {
     private final UpdatesWebSocketHandler webSocketHandler = mock(UpdatesWebSocketHandler.class);
     private final JsonMapper jsonMapper = JsonMapper.builder().build();
 
-    private final UpdatesPublisher publisher = new UpdatesPublisher(registry, channelHopper, webSocketHandler, jsonMapper);
+    private final CaptureService captureService = mock(CaptureService.class);
+
+    private final UpdatesPublisher publisher = new UpdatesPublisher(registry, channelHopper, captureService, webSocketHandler, jsonMapper);
 
     private final AccessPoint artemisZone = new AccessPoint("50:d4:f7:03:12:f3", "ArtemisZone", 10, 2457, -68,
             "WPA/WPA2-PSK", "TP-LINK TECHNOLOGIES CO.,LTD.", 1000);
@@ -68,6 +71,32 @@ class UpdatesPublisherTest {
         ArgumentCaptor<String> sent = ArgumentCaptor.forClass(String.class);
         verify(webSocketHandler).broadcast(sent.capture());
         assertThat(jsonMapper.readTree(sent.getValue()).get("status").get("currentChannel").isNull()).isTrue();
+    }
+
+    @Test
+    void reportsTheRunningCapture() {
+        when(webSocketHandler.hasClients()).thenReturn(true);
+        when(registry.snapshot(anyLong())).thenReturn(List.of());
+        when(channelHopper.pinnedChannel()).thenReturn(Optional.empty());
+        when(captureService.isRunning()).thenReturn(true);
+        when(captureService.getSource()).thenReturn("FILE");
+        when(captureService.getSourceName()).thenReturn("beacons-wpa2.pcap");
+        when(captureService.getLinkType()).thenReturn(127);
+        when(captureService.getFrames()).thenReturn(50L);
+        when(captureService.getParseErrors()).thenReturn(2L);
+
+        publisher.publish();
+
+        ArgumentCaptor<String> sent = ArgumentCaptor.forClass(String.class);
+        verify(webSocketHandler).broadcast(sent.capture());
+        JsonNode status = jsonMapper.readTree(sent.getValue()).get("status");
+
+        assertThat(status.get("running").asBoolean()).isTrue();
+        assertThat(status.get("source").asString()).isEqualTo("FILE");
+        assertThat(status.get("interface").asString()).isEqualTo("beacons-wpa2.pcap");
+        assertThat(status.get("linkType").asInt()).isEqualTo(127);
+        assertThat(status.get("frames").asLong()).isEqualTo(50);
+        assertThat(status.get("parseErrors").asLong()).isEqualTo(2);
     }
 
     @Test

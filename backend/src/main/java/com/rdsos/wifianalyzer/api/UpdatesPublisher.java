@@ -5,6 +5,7 @@ import com.rdsos.wifianalyzer.api.dto.UpdateMessage;
 import com.rdsos.wifianalyzer.model.AccessPoint;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.wifi.AccessPointRegistry;
+import com.rdsos.wifianalyzer.service.wifi.CaptureService;
 import com.rdsos.wifianalyzer.ws.UpdatesWebSocketHandler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -21,13 +22,15 @@ public class UpdatesPublisher {
 
     private final AccessPointRegistry registry;
     private final ChannelHopper channelHopper;
+    private final CaptureService captureService;
     private final UpdatesWebSocketHandler webSocketHandler;
     private final JsonMapper jsonMapper;
 
-    public UpdatesPublisher(AccessPointRegistry registry, ChannelHopper channelHopper,
+    public UpdatesPublisher(AccessPointRegistry registry, ChannelHopper channelHopper, CaptureService captureService,
                             UpdatesWebSocketHandler webSocketHandler, JsonMapper jsonMapper) {
         this.registry = registry;
         this.channelHopper = channelHopper;
+        this.captureService = captureService;
         this.webSocketHandler = webSocketHandler;
         this.jsonMapper = jsonMapper;
     }
@@ -46,6 +49,17 @@ public class UpdatesPublisher {
     private Status currentStatus() {
         Integer currentChannel = channelHopper.isRunning() ? channelHopper.currentChannel() : null;
         Integer pinnedChannel = channelHopper.pinnedChannel().orElse(null);
-        return new Status(false, null, null, null, null, currentChannel, pinnedChannel, 0, 0, 0);
+
+        return new Status(
+                captureService.isRunning(),
+                captureService.getSource(),
+                captureService.getSourceName(),
+                null,
+                captureService.getLinkType(),
+                currentChannel,
+                pinnedChannel,
+                captureService.getFrames(),
+                0,
+                captureService.getParseErrors());
     }
 }
