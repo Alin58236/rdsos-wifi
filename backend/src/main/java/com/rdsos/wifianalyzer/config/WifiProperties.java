@@ -16,20 +16,22 @@ import java.util.List;
 @ConfigurationProperties("wifi")
 public class WifiProperties implements InitializingBean {
 
-    /** The only origin allowed for CORS and WebSocket. */
     private String frontendOrigin = "http://localhost:5173";
 
-    /** Kernel module reloaded before entering monitor mode; blank to skip. */
+    /** Kernel module reloaded before entering monitor mode; blank to skip */
     private String driverModule = "";
 
-    /** Dwell time per channel while hopping. */
+    /** Dwell time per channel while hopping */
     private long hopIntervalMs = 250;
 
-    /** Channels the hopper cycles through; also the only channels that can be pinned. */
+    /** Channels the hopper cycles through; also the only channels that can be pinned */
     private List<Integer> hopChannels = new ArrayList<>(List.of(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13));
 
-    /** sysfs directory listing network interfaces (overridable for tests). */
+    /** sysfs directory listing network interfaces (overridable for tests) */
     private Path sysClassNet = Path.of("/sys/class/net");
+
+    /** in case live capture doesn't work */
+    private Path replayDir = Path.of("src/test/resources/fixtures");
 
     @Override
     public void afterPropertiesSet() {
