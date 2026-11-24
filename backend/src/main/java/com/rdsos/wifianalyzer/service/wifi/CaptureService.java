@@ -29,7 +29,7 @@ public class CaptureService {
     private final AtomicLong frames = new AtomicLong();
     private final AtomicLong parseErrors = new AtomicLong();
 
-    // written by stop() on the HTTP thread, read by the capture loop on the capture thread
+    //volatile ca sa vada thread-ul HTTP valorile curente
     private volatile boolean running;
     private volatile String sourceType;
     private volatile String sourceName;
