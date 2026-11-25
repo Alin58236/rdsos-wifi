@@ -1,0 +1,456 @@
+{
+ "1": {
+  "id": 1,
+  "timestampMicros": 1795357761364086,
+  "length": 378,
+  "layers": [
+   {
+    "name": "Radiotap",
+    "offset": 0,
+    "length": 38,
+    "fields": [
+     {
+      "name": "Header length",
+      "value": "38 bytes"
+     },
+     {
+      "name": "Frequency",
+      "value": "2457 MHz"
+     },
+     {
+      "name": "Signal",
+      "value": "-90 dBm"
+     },
+     {
+      "name": "FCS at end",
+      "value": "yes"
+     }
+    ]
+   },
+   {
+    "name": "802.11 Beacon",
+    "offset": 38,
+    "length": 24,
+    "fields": [
+     {
+      "name": "Type / subtype",
+      "value": "Management (0) / Beacon (8)"
+     },
+     {
+      "name": "To DS",
+      "value": "no"
+     },
+     {
+      "name": "From DS",
+      "value": "no"
+     },
+     {
+      "name": "Protected",
+      "value": "no"
+     },
+     {
+      "name": "Destination",
+      "value": "ff:ff:ff:ff:ff:ff"
+     },
+     {
+      "name": "Source",
+      "value": "50:d4:f7:03:12:f3"
+     },
+     {
+      "name": "BSSID",
+      "value": "50:d4:f7:03:12:f3"
+     }
+    ]
+   },
+   {
+    "name": "Beacon body",
+    "offset": 62,
+    "length": 312,
+    "fields": [
+     {
+      "name": "SSID",
+      "value": "HomeNetwork"
+     },
+     {
+      "name": "Channel",
+      "value": "10"
+     },
+     {
+      "name": "Beacon interval",
+      "value": "100 TU"
+     },
+     {
+      "name": "Privacy",
+      "value": "yes"
+     }
+    ]
+   }
+  ],
+  "hex": "000026002f4000a0200800a020080000e6d060000000000010029909a000a6000000a600d30180000000ffffffffffff50d4f70312f350d4f70312f360af84e142b80a01000064003104000b486f6d654e6574776f726b010882848b962430486c03010a0504000100082a010032040c12186030180100000fac020200000fac04000fac020100000fac020c000b0502002d00002d1aad0917ffffff00000000000000000000000000000000000000003d160a0815000000000000000000000000000000000000004a0e14000a002c01c8001400050019007f080500080000000040dd310050f204104a000110104400010210470010d96c7efc2f8938f1efbd6e5148bfa812103c0001031049000600372a000120dd1e00904c0400bf0cb259820feaff0000eaff0000c005000a000000c3020002dd090010180202001c0000dd1a0050f20101000050f20202000050f2040050f20201000050f202dd180050f2020101840003a4000027a4000042435e0062322f006a2cbfea"
+ },
+ "2": {
+  "id": 2,
+  "timestampMicros": 1795357768361120,
+  "length": 155,
+  "layers": [
+   {
+    "name": "Radiotap",
+    "offset": 0,
+    "length": 41,
+    "fields": [
+     {
+      "name": "Header length",
+      "value": "41 bytes"
+     },
+     {
+      "name": "Frequency",
+      "value": "2457 MHz"
+     },
+     {
+      "name": "Signal",
+      "value": "-38 dBm"
+     },
+     {
+      "name": "FCS at end",
+      "value": "yes"
+     }
+    ]
+   },
+   {
+    "name": "802.11 QoS Data",
+    "offset": 41,
+    "length": 26,
+    "fields": [
+     {
+      "name": "Type / subtype",
+      "value": "Data (2) / QoS Data (8)"
+     },
+     {
+      "name": "To DS",
+      "value": "yes"
+     },
+     {
+      "name": "From DS",
+      "value": "no"
+     },
+     {
+      "name": "Protected",
+      "value": "yes"
+     },
+     {
+      "name": "Destination",
+      "value": "50:d4:f7:03:12:f4"
+     },
+     {
+      "name": "Source",
+      "value": "ae:80:66:e8:2f:e3"
+     },
+     {
+      "name": "BSSID",
+      "value": "50:d4:f7:03:12:f3"
+     }
+    ]
+   },
+   {
+    "name": "Encrypted (WPA2)",
+    "offset": 67,
+    "length": 84,
+    "fields": []
+   }
+  ],
+  "hex": "000029002b4008a0200800a0200800009893cb0000000000100099098004da00000007000fba00da018841300050d4f70312f3ae8066e82fe350d4f70312f4a03605001d07002000000000684544f8a62110970e115216b81b68a2639d979ee983b6375e5a4b05ca51703aaed7207e5e25a24163bf378742e4df6318db6f6790a48d4b3b767769d2871dc1a81e01752deb801c06fe4cb95be42e7a"
+ },
+ "3": {
+  "id": 3,
+  "timestampMicros": 1795545548833436,
+  "length": 74,
+  "layers": [
+   {
+    "name": "Ethernet (managed mode)",
+    "offset": 0,
+    "length": 14,
+    "fields": [
+     {
+      "name": "Destination",
+      "value": "50:d4:f7:03:12:f4"
+     },
+     {
+      "name": "Source",
+      "value": "80:91:33:50:03:49"
+     },
+     {
+      "name": "EtherType",
+      "value": "0x0800 (IPv4)"
+     }
+    ]
+   },
+   {
+    "name": "IPv4",
+    "offset": 14,
+    "length": 20,
+    "fields": [
+     {
+      "name": "Version",
+      "value": "4"
+     },
+     {
+      "name": "Header length",
+      "value": "20 bytes"
+     },
+     {
+      "name": "DSCP",
+      "value": "0"
+     },
+     {
+      "name": "ECN",
+      "value": "0"
+     },
+     {
+      "name": "Total length",
+      "value": "60"
+     },
+     {
+      "name": "Identification",
+      "value": "0xc447 (50247)"
+     },
+     {
+      "name": "Don't fragment",
+      "value": "yes"
+     },
+     {
+      "name": "More fragments",
+      "value": "no"
+     },
+     {
+      "name": "Fragment offset",
+      "value": "0"
+     },
+     {
+      "name": "Time to live",
+      "value": "64"
+     },
+     {
+      "name": "Protocol",
+      "value": "6 (TCP)"
+     },
+     {
+      "name": "Header checksum",
+      "value": "0x161b"
+     },
+     {
+      "name": "Source",
+      "value": "192.168.0.165"
+     },
+     {
+      "name": "Destination",
+      "value": "34.223.124.45"
+     },
+     {
+      "name": "Options",
+      "value": "none"
+     }
+    ]
+   },
+   {
+    "name": "TCP",
+    "offset": 34,
+    "length": 40,
+    "fields": [
+     {
+      "name": "Source port",
+      "value": "39194"
+     },
+     {
+      "name": "Destination port",
+      "value": "80"
+     },
+     {
+      "name": "Sequence number",
+      "value": "731699384"
+     },
+     {
+      "name": "Acknowledgment number",
+      "value": "0"
+     },
+     {
+      "name": "Header length",
+      "value": "40 bytes"
+     },
+     {
+      "name": "Flags",
+      "value": "SYN"
+     },
+     {
+      "name": "Window size",
+      "value": "64240"
+     },
+     {
+      "name": "Checksum",
+      "value": "0x428e"
+     },
+     {
+      "name": "Urgent pointer",
+      "value": "0"
+     },
+     {
+      "name": "Options",
+      "value": "020405b40402080aa79664ce000000000103030a"
+     }
+    ]
+   }
+  ],
+  "hex": "50d4f70312f480913350034908004500003cc44740004006161bc0a800a522df7c2d991a00502b9cd8b800000000a002faf0428e0000020405b40402080aa79664ce000000000103030a"
+ },
+ "4": {
+  "id": 4,
+  "timestampMicros": 1795545549061146,
+  "length": 141,
+  "layers": [
+   {
+    "name": "Ethernet (managed mode)",
+    "offset": 0,
+    "length": 14,
+    "fields": [
+     {
+      "name": "Destination",
+      "value": "50:d4:f7:03:12:f4"
+     },
+     {
+      "name": "Source",
+      "value": "80:91:33:50:03:49"
+     },
+     {
+      "name": "EtherType",
+      "value": "0x0800 (IPv4)"
+     }
+    ]
+   },
+   {
+    "name": "IPv4",
+    "offset": 14,
+    "length": 20,
+    "fields": [
+     {
+      "name": "Version",
+      "value": "4"
+     },
+     {
+      "name": "Header length",
+      "value": "20 bytes"
+     },
+     {
+      "name": "DSCP",
+      "value": "0"
+     },
+     {
+      "name": "ECN",
+      "value": "0"
+     },
+     {
+      "name": "Total length",
+      "value": "127"
+     },
+     {
+      "name": "Identification",
+      "value": "0xc449 (50249)"
+     },
+     {
+      "name": "Don't fragment",
+      "value": "yes"
+     },
+     {
+      "name": "More fragments",
+      "value": "no"
+     },
+     {
+      "name": "Fragment offset",
+      "value": "0"
+     },
+     {
+      "name": "Time to live",
+      "value": "64"
+     },
+     {
+      "name": "Protocol",
+      "value": "6 (TCP)"
+     },
+     {
+      "name": "Header checksum",
+      "value": "0x15d6"
+     },
+     {
+      "name": "Source",
+      "value": "192.168.0.165"
+     },
+     {
+      "name": "Destination",
+      "value": "34.223.124.45"
+     },
+     {
+      "name": "Options",
+      "value": "none"
+     }
+    ]
+   },
+   {
+    "name": "TCP",
+    "offset": 34,
+    "length": 32,
+    "fields": [
+     {
+      "name": "Source port",
+      "value": "39194"
+     },
+     {
+      "name": "Destination port",
+      "value": "80"
+     },
+     {
+      "name": "Sequence number",
+      "value": "731699385"
+     },
+     {
+      "name": "Acknowledgment number",
+      "value": "993619364"
+     },
+     {
+      "name": "Header length",
+      "value": "32 bytes"
+     },
+     {
+      "name": "Flags",
+      "value": "PSH, ACK"
+     },
+     {
+      "name": "Window size",
+      "value": "63"
+     },
+     {
+      "name": "Checksum",
+      "value": "0x243e"
+     },
+     {
+      "name": "Urgent pointer",
+      "value": "0"
+     },
+     {
+      "name": "Options",
+      "value": "0101080aa79665b1a7439af8"
+     }
+    ]
+   },
+   {
+    "name": "HTTP",
+    "offset": 66,
+    "length": 75,
+    "fields": [
+     {
+      "name": "Payload",
+      "value": "GET / HTTP/1.1\r\nHost: neverssl.com\r\nUser-Agent: curl/8.5.0\r\nAccept: */*\r\n\r\n"
+     }
+    ]
+   }
+  ],
+  "hex": "50d4f70312f480913350034908004500007fc4494000400615d6c0a800a522df7c2d991a00502b9cd8b93b396da48018003f243e00000101080aa79665b1a7439af8474554202f20485454502f312e310d0a486f73743a206e6576657273736c2e636f6d0d0a557365722d4167656e743a206375726c2f382e352e300d0a4163636570743a202a2f2a0d0a0d0a"
+ }
+}
