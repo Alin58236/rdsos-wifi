@@ -11,7 +11,6 @@ public class Status {
     @JsonProperty("interface")
     String interfaceName;
     String mode;
-    Integer linkType;
     Integer currentChannel;
     Integer pinnedChannel;
     long frames;

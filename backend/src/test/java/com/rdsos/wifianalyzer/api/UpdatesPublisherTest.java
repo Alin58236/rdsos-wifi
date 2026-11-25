@@ -89,7 +89,6 @@ class UpdatesPublisherTest {
         when(captureService.getSource()).thenReturn("LIVE");
         when(captureService.getSourceName()).thenReturn("wlp4s0");
         when(captureService.getMode()).thenReturn("MONITOR");
-        when(captureService.getLinkType()).thenReturn(127);
         when(captureService.getFrames()).thenReturn(50L);
         when(captureService.getParseErrors()).thenReturn(2L);
 
@@ -103,7 +102,6 @@ class UpdatesPublisherTest {
         assertThat(status.get("source").asString()).isEqualTo("LIVE");
         assertThat(status.get("interface").asString()).isEqualTo("wlp4s0");
         assertThat(status.get("mode").asString()).isEqualTo("MONITOR");
-        assertThat(status.get("linkType").asInt()).isEqualTo(127);
         assertThat(status.get("frames").asLong()).isEqualTo(50);
         assertThat(status.get("parseErrors").asLong()).isEqualTo(2);
     }

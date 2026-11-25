@@ -39,8 +39,6 @@ public class CaptureService {
     @Getter
     private volatile String sourceName;
     @Getter
-    private volatile Integer linkType;
-    @Getter
     private volatile String mode;
 
     private Thread captureThread;
@@ -170,7 +168,6 @@ public class CaptureService {
         sourceType = null;
         mode = null;
         sourceName = null;
-        linkType = null;
     }
 
     public String getSource(){
