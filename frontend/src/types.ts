@@ -28,7 +28,6 @@ export type CaptureStatus = {
   source: 'LIVE' | 'FILE' | null
   interface: string | null
   mode: InterfaceMode | null
-  linkType: number | null
   currentChannel: number | null
   pinnedChannel: number | null
   frames: number
@@ -45,6 +44,31 @@ export type PacketSummary = {
   source: string | null
   destination: string | null
   info: string
+}
+
+/** One line in a layer, already formatted by the backend, e.g. "Time to live" = "64". */
+export type PacketField = {
+  name: string
+  value: string
+}
+
+/** One header in the layer tree. offset and length are bytes in the hex dump, so it can be highlighted. */
+export type PacketLayer = {
+  name: string
+  offset: number
+  length: number
+  fields: PacketField[]
+}
+
+/** The full decode of one packet, from GET /api/packets/{id}. */
+export type PacketDetail = {
+  id: number
+  timestampMicros: number
+  length: number
+  /** in wire order: Radiotap first in monitor mode, Ethernet first in managed mode */
+  layers: PacketLayer[]
+  /** the whole frame as lower-case hex, two characters per byte */
+  hex: string
 }
 
 /** One WebSocket message (the backend sends one every 200 ms). */
