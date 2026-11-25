@@ -30,6 +30,12 @@ public class ApiExceptionHandler {
         return new ErrorResponse(e.getMessage());
     }
 
+    @ExceptionHandler(PacketNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse packetNotFound(PacketNotFoundException e) {
+        return new ErrorResponse(e.getMessage());
+    }
+
     /** 500: ip, iw, nmcli or modprobe failed. */
     @ExceptionHandler(CommandFailedException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)

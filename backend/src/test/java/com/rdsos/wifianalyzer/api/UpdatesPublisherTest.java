@@ -1,7 +1,9 @@
 package com.rdsos.wifianalyzer.api;
 
 import com.rdsos.wifianalyzer.model.analyzer.AccessPoint;
+import com.rdsos.wifianalyzer.model.sniffer.DecodedPacket;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
+import com.rdsos.wifianalyzer.service.sniffer.PacketStore;
 import com.rdsos.wifianalyzer.service.wifi.AccessPointRegistry;
 import com.rdsos.wifianalyzer.service.wifi.CaptureService;
 import com.rdsos.wifianalyzer.ws.UpdatesWebSocketHandler;
@@ -16,6 +18,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -30,7 +33,11 @@ class UpdatesPublisherTest {
 
     private final CaptureService captureService = mock(CaptureService.class);
 
-    private final UpdatesPublisher publisher = new UpdatesPublisher(registry, channelHopper, captureService, webSocketHandler, jsonMapper);
+    // the real store and mapper: they are plain classes, and the test checks what really reaches the browser
+    private final PacketStore packetStore = new PacketStore();
+
+    private final UpdatesPublisher publisher = new UpdatesPublisher(registry, channelHopper, captureService,
+            webSocketHandler, jsonMapper, packetStore, new PacketViewMapper());
 
     private final AccessPoint artemisZone = new AccessPoint("50:d4:f7:03:12:f3", "HomeNetwork", 10, 2457, -68,
             "WPA/WPA2-PSK", "TP-LINK TECHNOLOGIES CO.,LTD.", 1000);
@@ -102,6 +109,52 @@ class UpdatesPublisherTest {
     }
 
     @Test
+    void sendsTheNewPacketsAsSummaries() {
+        givenAClientAndNoAps();
+        packetStore.add(packetWithTimestamp(100));
+        packetStore.add(packetWithTimestamp(200));
+
+        publisher.publish();
+
+        JsonNode packets = lastSentMessage().get("packets");
+        assertThat(packets.size()).isEqualTo(2);
+        assertThat(packets.get(0).get("id").asLong()).isEqualTo(1);
+        assertThat(packets.get(0).get("timestampMicros").asLong()).isEqualTo(100);
+        assertThat(packets.get(1).get("id").asLong()).isEqualTo(2);
+    }
+
+    @Test
+    void sendsEachPacketOnlyOnce() {
+        givenAClientAndNoAps();
+        packetStore.add(packetWithTimestamp(100));
+        publisher.publish();
+
+        packetStore.add(packetWithTimestamp(200));
+        publisher.publish();
+
+        // the second message has only the packet added after the first one
+        JsonNode packets = lastSentMessage().get("packets");
+        assertThat(packets.size()).isEqualTo(1);
+        assertThat(packets.get(0).get("id").asLong()).isEqualTo(2);
+    }
+
+    @Test
+    void sendsAtMost500PacketsPerMessageAndTheRestInTheNextOne() {
+        givenAClientAndNoAps();
+        for (int i = 0; i < 600; i++) {
+            packetStore.add(packetWithTimestamp(i));
+        }
+
+        publisher.publish();
+        assertThat(lastSentMessage().get("packets").size()).isEqualTo(500);
+
+        publisher.publish();
+        JsonNode packets = lastSentMessage().get("packets");
+        assertThat(packets.size()).isEqualTo(100);
+        assertThat(packets.get(0).get("id").asLong()).isEqualTo(501);
+    }
+
+    @Test
     void sendsNothingWhenNoClientIsConnected() {
         when(webSocketHandler.hasClients()).thenReturn(false);
 
@@ -109,5 +162,25 @@ class UpdatesPublisherTest {
 
         verify(webSocketHandler, never()).broadcast(anyString());
         verify(registry, never()).snapshot(anyLong());
+    }
+
+    private void givenAClientAndNoAps() {
+        when(webSocketHandler.hasClients()).thenReturn(true);
+        when(registry.snapshot(anyLong())).thenReturn(List.of());
+        when(channelHopper.pinnedChannel()).thenReturn(Optional.empty());
+    }
+
+    // the message given to broadcast() by the latest publish()
+    private JsonNode lastSentMessage() {
+        ArgumentCaptor<String> sent = ArgumentCaptor.forClass(String.class);
+        verify(webSocketHandler, atLeastOnce()).broadcast(sent.capture());
+        return jsonMapper.readTree(sent.getValue());
+    }
+
+    private DecodedPacket packetWithTimestamp(long timestampMicros) {
+        return DecodedPacket.builder()
+                .timestampMicros(timestampMicros)
+                .data(new byte[]{1, 2, 3})
+                .build();
     }
 }

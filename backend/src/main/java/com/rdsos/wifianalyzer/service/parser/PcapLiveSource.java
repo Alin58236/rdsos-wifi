@@ -56,7 +56,6 @@ public final class PcapLiveSource implements CaptureSource {
         this.dataPointerBox = arena.allocate(ADDRESS);
     }
 
-    /** Reads a .pcap file through libpcap (pcap_open_offline). Needs no root, so the tests use it. */
     public static PcapLiveSource openFile(Path file) {
         Arena arena = Arena.ofShared();
         MemorySegment errorBuffer = arena.allocate(LibPcap.ERROR_BUFFER_SIZE);
@@ -71,10 +70,7 @@ public final class PcapLiveSource implements CaptureSource {
         return new PcapLiveSource(arena, handle);
     }
 
-    /**
-     * Captures live from an interface. The interface must already be in the wanted mode (InterfaceService
-     * switches it); we never call pcap_set_rfmon, which can create a separate monN interface. Needs root.
-     */
+
     public static PcapLiveSource openInterface(String interfaceName) {
         Arena arena = Arena.ofShared();
         MemorySegment errorBuffer = arena.allocate(LibPcap.ERROR_BUFFER_SIZE);
@@ -92,7 +88,6 @@ public final class PcapLiveSource implements CaptureSource {
         LibPcap.setTimeout(handle, READ_TIMEOUT_MS);
         LibPcap.setImmediateMode(handle, 1);
 
-        // 0 = started, > 0 = started with a warning, < 0 = failed (e.g. no permission without root)
         int status = LibPcap.activate(handle);
         if (status < 0) {
             String message = LibPcap.errorMessage(handle);
@@ -103,7 +98,6 @@ public final class PcapLiveSource implements CaptureSource {
         return new PcapLiveSource(arena, handle);
     }
 
-    /** The next frame, or null on a timeout (live) or at the end of the file (offline). */
     @Override
     public RawFrame next() {
         int result = LibPcap.nextEx(handle, headerPointerBox, dataPointerBox);
