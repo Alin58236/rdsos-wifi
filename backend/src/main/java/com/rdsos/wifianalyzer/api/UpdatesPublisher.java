@@ -2,7 +2,7 @@ package com.rdsos.wifianalyzer.api;
 
 import com.rdsos.wifianalyzer.api.dto.Status;
 import com.rdsos.wifianalyzer.api.dto.UpdateMessage;
-import com.rdsos.wifianalyzer.model.AccessPoint;
+import com.rdsos.wifianalyzer.model.analyzer.AccessPoint;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.wifi.AccessPointRegistry;
 import com.rdsos.wifianalyzer.service.wifi.CaptureService;

@@ -1,6 +1,10 @@
 package com.rdsos.wifianalyzer.wifi;
 
 import com.rdsos.wifianalyzer.model.*;
+import com.rdsos.wifianalyzer.model.analyzer.AccessPoint;
+import com.rdsos.wifianalyzer.model.analyzer.Beacon;
+import com.rdsos.wifianalyzer.model.analyzer.Dot11Header;
+import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import com.rdsos.wifianalyzer.service.parser.*;
 import com.rdsos.wifianalyzer.service.wifi.AccessPointRegistry;
 import com.rdsos.wifianalyzer.util.OuiDatabase;

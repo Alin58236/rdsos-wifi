@@ -1,8 +1,8 @@
 package com.rdsos.wifianalyzer.service.wifi;
 
-import com.rdsos.wifianalyzer.model.Beacon;
-import com.rdsos.wifianalyzer.model.Dot11Header;
-import com.rdsos.wifianalyzer.model.RadioTapHeader;
+import com.rdsos.wifianalyzer.model.analyzer.Beacon;
+import com.rdsos.wifianalyzer.model.analyzer.Dot11Header;
+import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import com.rdsos.wifianalyzer.model.RawFrame;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.iface.InterfaceMode;

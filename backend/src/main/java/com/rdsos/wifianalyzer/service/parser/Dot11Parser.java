@@ -1,6 +1,6 @@
 package com.rdsos.wifianalyzer.service.parser;
 
-import com.rdsos.wifianalyzer.model.Dot11Header;
+import com.rdsos.wifianalyzer.model.analyzer.Dot11Header;
 import com.rdsos.wifianalyzer.util.ByteReader;
 
 import java.util.List;

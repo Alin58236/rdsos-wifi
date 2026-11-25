@@ -1,13 +1,11 @@
 package com.rdsos.wifianalyzer.service.parser;
 
-import com.rdsos.wifianalyzer.model.Beacon;
-import com.rdsos.wifianalyzer.model.IE;
+import com.rdsos.wifianalyzer.model.analyzer.Beacon;
+import com.rdsos.wifianalyzer.model.analyzer.IE;
 import com.rdsos.wifianalyzer.util.ByteReader;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 public class BeaconParser {

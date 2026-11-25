@@ -19,9 +19,9 @@ const LAST_AXIS_CHANNEL = 15
 const LABELLED_CHANNELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
 // The y axis goes from -100 dBm (bottom, no signal) to -30 dBm (top, very strong).
-const WEAKEST_DBM = -100
-const STRONGEST_DBM = -30
-const DBM_GRID_LINES = [-90, -80, -70, -60, -50, -40]
+const WEAKEST_DBM = -120
+const STRONGEST_DBM = -35
+const DBM_GRID_LINES = [-110, -100, -70, -60, -50, -40]
 
 // How far a hill reaches on each side of its channel.
 const HILL_HALF_WIDTH_IN_CHANNELS = 2

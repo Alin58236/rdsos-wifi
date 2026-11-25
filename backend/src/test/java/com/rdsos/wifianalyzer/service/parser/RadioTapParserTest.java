@@ -1,7 +1,7 @@
 package com.rdsos.wifianalyzer.service.parser;
 
 
-import com.rdsos.wifianalyzer.model.RadioTapHeader;
+import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import com.rdsos.wifianalyzer.model.RawFrame;
 import org.junit.jupiter.api.Test;
 

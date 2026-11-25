@@ -10,7 +10,7 @@ export function signalLevel(signalDBm: number | null): SignalLevel {
   if (signalDBm >= -60) {
     return 'good'
   }
-  if (signalDBm >= -75) {
+  if (signalDBm >= -85) {
     return 'fair'
   }
   return 'weak'

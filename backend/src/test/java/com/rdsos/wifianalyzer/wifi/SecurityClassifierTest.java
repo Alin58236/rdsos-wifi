@@ -1,8 +1,8 @@
 package com.rdsos.wifianalyzer.wifi;
 
-import com.rdsos.wifianalyzer.model.Beacon;
-import com.rdsos.wifianalyzer.model.Dot11Header;
-import com.rdsos.wifianalyzer.model.RadioTapHeader;
+import com.rdsos.wifianalyzer.model.analyzer.Beacon;
+import com.rdsos.wifianalyzer.model.analyzer.Dot11Header;
+import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import com.rdsos.wifianalyzer.service.parser.*;
 import com.rdsos.wifianalyzer.util.SecurityClassifier;
 import org.junit.jupiter.api.Test;

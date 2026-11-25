@@ -1,6 +1,6 @@
 package com.rdsos.wifianalyzer.service.wifi;
 
-import com.rdsos.wifianalyzer.model.AccessPoint;
+import com.rdsos.wifianalyzer.model.analyzer.AccessPoint;
 import com.rdsos.wifianalyzer.model.RawFrame;
 import com.rdsos.wifianalyzer.service.parser.CaptureSource;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;

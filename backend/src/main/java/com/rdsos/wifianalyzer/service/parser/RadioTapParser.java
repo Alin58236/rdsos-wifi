@@ -1,6 +1,6 @@
 package com.rdsos.wifianalyzer.service.parser;
 
-import com.rdsos.wifianalyzer.model.RadioTapHeader;
+import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import com.rdsos.wifianalyzer.util.ByteReader;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

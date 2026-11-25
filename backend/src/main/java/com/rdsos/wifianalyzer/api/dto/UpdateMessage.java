@@ -1,6 +1,6 @@
 package com.rdsos.wifianalyzer.api.dto;
 
-import com.rdsos.wifianalyzer.model.AccessPoint;
+import com.rdsos.wifianalyzer.model.analyzer.AccessPoint;
 import lombok.Value;
 
 import java.util.List;

@@ -1,4 +1,4 @@
-package com.rdsos.wifianalyzer.model;
+package com.rdsos.wifianalyzer.model.analyzer;
 
 import lombok.Value;
 
