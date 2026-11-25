@@ -47,6 +47,19 @@ public final class ByteReader {
                 | (inputBytes[offset + 3] & 0xFFL);
     }
 
+    public static String ipv4Address(byte[] input, int offset) {
+        Objects.checkFromIndexSize(offset, 4, input.length);
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < 4; i++) {
+            // & 0xFF: a Java byte is signed, so 0xc0 would otherwise be -64 instead of 192
+            result.append(input[offset + i] & 0xFF);
+            if (i != 3) {
+                result.append(".");
+            }
+        }
+        return result.toString();
+    }
+
     public static String mac(byte[] input, int offset) {
         Objects.checkFromIndexSize(offset, 6, input.length);
         StringBuilder result = new StringBuilder();

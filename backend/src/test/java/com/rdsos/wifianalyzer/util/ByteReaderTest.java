@@ -86,4 +86,20 @@ public class ByteReaderTest {
         assertThatThrownBy(() -> ByteReader.unsigned8(inputArray, -1))
                 .isInstanceOf(IndexOutOfBoundsException.class);
     }
+
+    @Test
+    void ipv4AddressReadsFourBytesAsUnsignedNumbers() {
+        // c0 a8 = 192 168: bytes above 0x7f must not come out negative
+        byte[] data = {0x00, (byte) 0xc0, (byte) 0xa8, 0x00, (byte) 0xa5};
+
+        assertEquals("192.168.0.165", ByteReader.ipv4Address(data, 1));
+    }
+
+    @Test
+    void ipv4AddressRejectsFewerThanFourBytes() {
+        byte[] data = {(byte) 0xc0, (byte) 0xa8, 0x00};
+
+        assertThatThrownBy(() -> ByteReader.ipv4Address(data, 0))
+                .isInstanceOf(IndexOutOfBoundsException.class);
+    }
 }
