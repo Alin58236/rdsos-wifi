@@ -1,6 +1,6 @@
 
 
-import type { InterfaceMode, WifiInterface } from './types'
+import type { InterfaceMode, PacketDetail, WifiInterface } from './types'
 
 async function sendRequest(method: string, url: string, body?: unknown): Promise<Response> {
   const response = await fetch(url, {
@@ -69,4 +69,10 @@ export async function pinChannel(channel: number): Promise<void> {
 
 export async function unpinChannel(): Promise<void> {
   await sendRequest('DELETE', '/api/channel')
+}
+
+/** The layer tree and hex of one packet. Fails with "no longer in the buffer" for old packets. */
+export async function getPacketDetail(packetId: number): Promise<PacketDetail> {
+  const response = await sendRequest('GET', `/api/packets/${packetId}`)
+  return response.json()
 }
