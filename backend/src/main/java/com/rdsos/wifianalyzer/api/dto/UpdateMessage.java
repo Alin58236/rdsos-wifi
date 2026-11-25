@@ -10,6 +10,6 @@ import java.util.List;
 public class UpdateMessage {
     Status status;
     List<AccessPoint> aps;
-    /** Packets decoded since the previous message; empty until the capture side exists. */
-    List<Object> packets;
+    /** Packets decoded since the previous message, oldest first. */
+    List<PacketSummary> packets;
 }

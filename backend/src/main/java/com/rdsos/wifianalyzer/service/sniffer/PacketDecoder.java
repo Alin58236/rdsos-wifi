@@ -16,6 +16,7 @@ public class PacketDecoder {
     private final LlcHeaderParser llcHeaderParser = new LlcHeaderParser();
     private final Ipv4HeaderParser ipv4HeaderParser = new Ipv4HeaderParser();
     private final TcpHeaderParser tcpHeaderParser = new TcpHeaderParser();
+    private final BeaconParser beaconParser = new BeaconParser();
     private final HttpPayloadParser httpPayloadParser = new HttpPayloadParser();
 
     public DecodedPacket decode(RawFrame frame){
@@ -43,6 +44,12 @@ public class PacketDecoder {
 
             Dot11Header dot11Header = dot11Parser.parse(data, radioTapHeader.getLength());
             packet.dot11(dot11Header);
+
+            if(isBeaconOrProbeResponse(dot11Header)){
+                int bodyOffset = radioTapHeader.getLength() + dot11Header.getHeaderLength();
+                int end = radioTapHeader.isHasFrameCheckSequence() ? data.length - 4 : data.length;
+                packet.beacon(beaconParser.parse(data, bodyOffset, end));
+            }
 
             if(dot11Header.getType() != 2){
                 return packet.build();
@@ -98,6 +105,11 @@ public class PacketDecoder {
 
         return packet.build();
 
+    }
+
+    // management (0), subtype 8 = beacon, 5 = probe response: both carry SSID, channel and security
+    private boolean isBeaconOrProbeResponse(Dot11Header dot11Header){
+        return dot11Header.getType() == 0 && (dot11Header.getSubtype() == 8 || dot11Header.getSubtype() == 5);
     }
 
     private boolean hasNoData(int subtype){

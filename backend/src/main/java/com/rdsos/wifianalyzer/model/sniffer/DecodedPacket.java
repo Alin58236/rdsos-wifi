@@ -1,5 +1,6 @@
 package com.rdsos.wifianalyzer.model.sniffer;
 
+import com.rdsos.wifianalyzer.model.analyzer.Beacon;
 import com.rdsos.wifianalyzer.model.analyzer.Dot11Header;
 import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import lombok.Builder;
@@ -18,6 +19,8 @@ public class DecodedPacket {
 
     RadioTapHeader radioTap;
     Dot11Header dot11;
+    // only for beacons and probe responses, so the registry and the packet list share one parse
+    Beacon beacon;
     boolean encrypted;
     LlcSnapHeader llcSnap;
     EthernetHeader ethernet;

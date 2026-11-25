@@ -127,6 +127,30 @@ public class PacketDecoderTest {
     }
 
     @Test
+    void givenABeacon_ThenTheBeaconBodyIsDecodedToo(){
+
+        PacketDecoder decoder = new PacketDecoder();
+        RawFrame frame = readFrameNo(BEACONS, 1);
+
+        DecodedPacket result = decoder.decode(frame);
+
+        // the AP registry and the packet list ("SSID=... CH=...") both use it
+        assertThat(result.getBeacon().getSsid()).isEqualTo("HomeNetwork");
+        assertThat(result.getBeacon().getChannel()).isEqualTo(10);
+    }
+
+    @Test
+    void givenADataFrame_ThenThereIsNoBeacon(){
+
+        PacketDecoder decoder = new PacketDecoder();
+        RawFrame frame = readFrameNo(WPA2_DATA, 2);
+
+        DecodedPacket result = decoder.decode(frame);
+
+        assertThat(result.getBeacon()).isNull();
+    }
+
+    @Test
     void givenAProtectedQosDataFrame_ThenItIsMarkedEncryptedAndNotDecodedFurther(){
 
         PacketDecoder decoder = new PacketDecoder();

@@ -1,19 +1,17 @@
 package com.rdsos.wifianalyzer.service.wifi;
 
-import com.rdsos.wifianalyzer.model.analyzer.Beacon;
-import com.rdsos.wifianalyzer.model.analyzer.Dot11Header;
-import com.rdsos.wifianalyzer.model.analyzer.RadioTapHeader;
 import com.rdsos.wifianalyzer.model.RawFrame;
+import com.rdsos.wifianalyzer.model.sniffer.DecodedPacket;
 import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
 import com.rdsos.wifianalyzer.service.iface.InterfaceMode;
 import com.rdsos.wifianalyzer.service.iface.InterfaceService;
-import com.rdsos.wifianalyzer.service.parser.BeaconParser;
 import com.rdsos.wifianalyzer.service.parser.CaptureSource;
-import com.rdsos.wifianalyzer.service.parser.Dot11Parser;
 import com.rdsos.wifianalyzer.service.parser.PcapFileReader;
 import com.rdsos.wifianalyzer.service.parser.PcapLiveSource;
-import com.rdsos.wifianalyzer.service.parser.RadioTapParser;
+import com.rdsos.wifianalyzer.service.sniffer.PacketDecoder;
+import com.rdsos.wifianalyzer.service.sniffer.PacketStore;
 import jakarta.annotation.PreDestroy;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -29,17 +27,20 @@ public class CaptureService {
     private final AccessPointRegistry registry;
     private final ChannelHopper channelHopper;
     private final InterfaceService interfaceService;
-    private final RadioTapParser radioTapParser = new RadioTapParser();
-    private final Dot11Parser dot11Parser = new Dot11Parser();
-    private final BeaconParser beaconParser = new BeaconParser();
+    private final PacketStore packetStore;
+    private final PacketDecoder packetDecoder = new PacketDecoder();
     private final AtomicLong frames = new AtomicLong();
     private final AtomicLong parseErrors = new AtomicLong();
 
     //volatile ca sa vada thread-ul HTTP valorile curente
+    @Getter
     private volatile boolean running;
     private volatile String sourceType;
+    @Getter
     private volatile String sourceName;
+    @Getter
     private volatile Integer linkType;
+    @Getter
     private volatile String mode;
 
     private Thread captureThread;
@@ -94,38 +95,15 @@ public class CaptureService {
         frames.incrementAndGet();
 
         try{
-            if(isMonitorModeFrame(frame)){
+            DecodedPacket packet = packetDecoder.decode(frame);
+            packetStore.add(packet);
 
-                RadioTapHeader radioTapHeader = radioTapParser.parse(frame.getData(),0);
-                Dot11Header dot11Header = dot11Parser.parse(frame.getData(),radioTapHeader.getLength());
-
-                if(dot11Header.getType() == 0 && (dot11Header.getSubtype()==8 || dot11Header.getSubtype()==5)){
-                    int offset = radioTapHeader.getLength() + dot11Header.getHeaderLength();
-                    int end = radioTapHeader.isHasFrameCheckSequence() ? frame.getData().length -4 : frame.getData().length;
-                    Beacon beacon = beaconParser.parse(frame.getData(),offset,end);
-
-                    registry.update(frame.getData(),radioTapHeader,dot11Header,beacon,System.currentTimeMillis());
-                }
-
-                //maine data frames LLC/SNAP -> IPv4 ->  TCP -> HTTP
-
-            }
-
-            if(isManagedModeFrame(frame)){
-                //maine: Ethernet -> IPv4 -> TCP -> HTTP
+            if(packet.getBeacon() != null){
+                registry.update(frame.getData(), packet.getRadioTap(), packet.getDot11(), packet.getBeacon(), System.currentTimeMillis());
             }
         } catch (IllegalArgumentException e) {
             parseErrors.incrementAndGet();
         }
-    }
-
-    private boolean isMonitorModeFrame(RawFrame frame){
-        return frame.getLinkType()==127;
-    }
-
-
-    private boolean isManagedModeFrame(RawFrame frame){
-        return frame.getLinkType() ==1;
     }
 
 
@@ -195,24 +173,8 @@ public class CaptureService {
         linkType = null;
     }
 
-    public boolean isRunning(){
-        return running;
-    }
-
     public String getSource(){
         return sourceType;
-    }
-
-    public String getSourceName(){
-        return sourceName;
-    }
-
-    public String getMode(){
-        return mode;
-    }
-
-    public Integer getLinkType(){
-        return linkType;
     }
 
     public long getFrames(){
