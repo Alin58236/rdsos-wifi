@@ -4,10 +4,14 @@ import com.rdsos.wifianalyzer.model.Beacon;
 import com.rdsos.wifianalyzer.model.Dot11Header;
 import com.rdsos.wifianalyzer.model.RadioTapHeader;
 import com.rdsos.wifianalyzer.model.RawFrame;
+import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
+import com.rdsos.wifianalyzer.service.iface.InterfaceMode;
+import com.rdsos.wifianalyzer.service.iface.InterfaceService;
 import com.rdsos.wifianalyzer.service.parser.BeaconParser;
 import com.rdsos.wifianalyzer.service.parser.CaptureSource;
 import com.rdsos.wifianalyzer.service.parser.Dot11Parser;
 import com.rdsos.wifianalyzer.service.parser.PcapFileReader;
+import com.rdsos.wifianalyzer.service.parser.PcapLiveSource;
 import com.rdsos.wifianalyzer.service.parser.RadioTapParser;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +27,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class CaptureService {
 
     private final AccessPointRegistry registry;
+    private final ChannelHopper channelHopper;
+    private final InterfaceService interfaceService;
     private final RadioTapParser radioTapParser = new RadioTapParser();
     private final Dot11Parser dot11Parser = new Dot11Parser();
     private final BeaconParser beaconParser = new BeaconParser();
@@ -34,6 +40,7 @@ public class CaptureService {
     private volatile String sourceType;
     private volatile String sourceName;
     private volatile Integer linkType;
+    private volatile String mode;
 
     private Thread captureThread;
 
@@ -85,7 +92,6 @@ public class CaptureService {
     void processFrame(RawFrame frame){
 
         frames.incrementAndGet();
-        linkType = frame.getLinkType();
 
         try{
             if(isMonitorModeFrame(frame)){
@@ -123,8 +129,47 @@ public class CaptureService {
     }
 
 
-    public void startLive(String interfaceName) {
+    //needs root -> calls libpcap
+    public synchronized void startLive(String interfaceName) {
 
+        if (running) {
+            throw new IllegalStateException("A capture is already running");
+        }
+
+        InterfaceMode interfaceMode = interfaceService.mode(interfaceName);
+        CaptureSource source = PcapLiveSource.openInterface(interfaceName);
+
+        log.info("Start live capture on {} ({} mode)", interfaceName, interfaceMode);
+
+        if (interfaceMode == InterfaceMode.MONITOR) {
+            channelHopper.start(interfaceName);
+        }
+
+        sourceType = "LIVE";
+        sourceName = interfaceName;
+        mode = interfaceMode.name();
+        running = true;
+        log.info("Creating the capture thread.");
+        captureThread = Thread.ofPlatform().name("capture").daemon().start(() -> liveLoop(source));
+    }
+
+
+    private void liveLoop(CaptureSource source) {
+
+        try {
+            while (running) {
+                RawFrame frame = source.next();
+                // null = libpcap timeout: no frame in the last 100 ms. Not the end, just check running again.
+                if (frame != null) {
+                    processFrame(frame);
+                }
+            }
+        } catch (RuntimeException e) {
+            log.warn("Live capture stopped: {}", e.getMessage());
+            running = false;
+        } finally {
+            source.close();
+        }
     }
 
     @PreDestroy
@@ -142,7 +187,10 @@ public class CaptureService {
             captureThread = null;
         }
 
+        channelHopper.stop();
+
         sourceType = null;
+        mode = null;
         sourceName = null;
         linkType = null;
     }
@@ -157,6 +205,10 @@ public class CaptureService {
 
     public String getSourceName(){
         return sourceName;
+    }
+
+    public String getMode(){
+        return mode;
     }
 
     public Integer getLinkType(){

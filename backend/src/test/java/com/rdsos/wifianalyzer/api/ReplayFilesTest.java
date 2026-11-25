@@ -1,6 +1,7 @@
 package com.rdsos.wifianalyzer.api;
 
 import com.rdsos.wifianalyzer.config.WifiProperties;
+import com.rdsos.wifianalyzer.util.ReplayFiles;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

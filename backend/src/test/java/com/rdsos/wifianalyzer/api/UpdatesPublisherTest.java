@@ -79,8 +79,9 @@ class UpdatesPublisherTest {
         when(registry.snapshot(anyLong())).thenReturn(List.of());
         when(channelHopper.pinnedChannel()).thenReturn(Optional.empty());
         when(captureService.isRunning()).thenReturn(true);
-        when(captureService.getSource()).thenReturn("FILE");
-        when(captureService.getSourceName()).thenReturn("beacons-wpa2.pcap");
+        when(captureService.getSource()).thenReturn("LIVE");
+        when(captureService.getSourceName()).thenReturn("wlp4s0");
+        when(captureService.getMode()).thenReturn("MONITOR");
         when(captureService.getLinkType()).thenReturn(127);
         when(captureService.getFrames()).thenReturn(50L);
         when(captureService.getParseErrors()).thenReturn(2L);
@@ -92,8 +93,9 @@ class UpdatesPublisherTest {
         JsonNode status = jsonMapper.readTree(sent.getValue()).get("status");
 
         assertThat(status.get("running").asBoolean()).isTrue();
-        assertThat(status.get("source").asString()).isEqualTo("FILE");
-        assertThat(status.get("interface").asString()).isEqualTo("beacons-wpa2.pcap");
+        assertThat(status.get("source").asString()).isEqualTo("LIVE");
+        assertThat(status.get("interface").asString()).isEqualTo("wlp4s0");
+        assertThat(status.get("mode").asString()).isEqualTo("MONITOR");
         assertThat(status.get("linkType").asInt()).isEqualTo(127);
         assertThat(status.get("frames").asLong()).isEqualTo(50);
         assertThat(status.get("parseErrors").asLong()).isEqualTo(2);

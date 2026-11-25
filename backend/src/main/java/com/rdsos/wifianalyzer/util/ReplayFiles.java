@@ -1,4 +1,4 @@
-package com.rdsos.wifianalyzer.api;
+package com.rdsos.wifianalyzer.util;
 
 import com.rdsos.wifianalyzer.config.WifiProperties;
 import org.springframework.stereotype.Component;

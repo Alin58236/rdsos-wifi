@@ -54,7 +54,7 @@ public class UpdatesPublisher {
                 captureService.isRunning(),
                 captureService.getSource(),
                 captureService.getSourceName(),
-                null,
+                captureService.getMode(),
                 captureService.getLinkType(),
                 currentChannel,
                 pinnedChannel,

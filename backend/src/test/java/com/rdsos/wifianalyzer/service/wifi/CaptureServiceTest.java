@@ -3,6 +3,8 @@ package com.rdsos.wifianalyzer.service.wifi;
 import com.rdsos.wifianalyzer.model.AccessPoint;
 import com.rdsos.wifianalyzer.model.RawFrame;
 import com.rdsos.wifianalyzer.service.parser.CaptureSource;
+import com.rdsos.wifianalyzer.service.iface.ChannelHopper;
+import com.rdsos.wifianalyzer.service.iface.InterfaceService;
 import com.rdsos.wifianalyzer.service.parser.PcapFileReader;
 import com.rdsos.wifianalyzer.util.OuiDatabase;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 public class CaptureServiceTest {
 
@@ -24,7 +27,7 @@ public class CaptureServiceTest {
     void givenABeaconFrame_ThenTheApIsInTheRegistry(){
 
         AccessPointRegistry registry = new AccessPointRegistry(new OuiDatabase(new ByteArrayInputStream(OUI_LINE.getBytes())));
-        CaptureService captureService = new CaptureService(registry);
+        CaptureService captureService = new CaptureService(registry, mock(ChannelHopper.class), mock(InterfaceService.class));
 
         try(CaptureSource source = new PcapFileReader(BEACONS_DATA)){
             captureService.processFrame(source.next());
@@ -43,7 +46,7 @@ public class CaptureServiceTest {
     void givenABrokenFrame_ThenItIsCountedAndNoExceptionIsThrown(){
 
         AccessPointRegistry registry = new AccessPointRegistry(new OuiDatabase(new ByteArrayInputStream(OUI_LINE.getBytes())));
-        CaptureService captureService = new CaptureService(registry);
+        CaptureService captureService = new CaptureService(registry, mock(ChannelHopper.class), mock(InterfaceService.class));
 
         // linkType 127 (Radiotap), but only 3 bytes: RadioTapParser needs at least 8
         RawFrame brokenFrame = new RawFrame(0, 127, 3, new byte[]{0x00, 0x00, 0x08});
@@ -59,7 +62,7 @@ public class CaptureServiceTest {
     void givenAReplay_ThenItRunsInTheBackgroundUntilStop() throws InterruptedException {
 
         AccessPointRegistry registry = new AccessPointRegistry(new OuiDatabase(new ByteArrayInputStream(OUI_LINE.getBytes())));
-        CaptureService captureService = new CaptureService(registry);
+        CaptureService captureService = new CaptureService(registry, mock(ChannelHopper.class), mock(InterfaceService.class));
 
         try {
             captureService.startReplay(BEACONS_DATA);
@@ -83,7 +86,7 @@ public class CaptureServiceTest {
     void givenACaptureIsRunning_ThenASecondStartIsRefused(){
 
         AccessPointRegistry registry = new AccessPointRegistry(new OuiDatabase(new ByteArrayInputStream(OUI_LINE.getBytes())));
-        CaptureService captureService = new CaptureService(registry);
+        CaptureService captureService = new CaptureService(registry, mock(ChannelHopper.class), mock(InterfaceService.class));
 
         try {
             captureService.startReplay(BEACONS_DATA);

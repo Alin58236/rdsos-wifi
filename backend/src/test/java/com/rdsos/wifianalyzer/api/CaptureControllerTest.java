@@ -1,6 +1,7 @@
 package com.rdsos.wifianalyzer.api;
 
 import com.rdsos.wifianalyzer.service.wifi.CaptureService;
+import com.rdsos.wifianalyzer.util.ReplayFiles;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
