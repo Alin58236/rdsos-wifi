@@ -22,7 +22,7 @@ Open `http://localhost:5173/?mock` to see the page with sample data when the bac
 | `src/useLiveUpdates.ts` | Opens the WebSocket `/ws/updates`, keeps the latest message (sent every 200 ms) and reconnects every 2 s if the backend goes away. Collects the new packets of each message and keeps the last 1,000. |
 | `src/api.ts` | One function per REST endpoint (`/api/interfaces`, `/api/capture/start`, `/api/channel`, …). Turns `{"error": "..."}` responses into an `Error`. |
 | `src/types.ts` | TypeScript types for everything the backend sends, copied from `docs/API.md`. |
-| `src/signal.ts` | Signal strength → colour: green ≥ -60 dBm, yellow -60 … -75, red < -75. |
+| `src/signal.ts` | Signal strength → colour: green ≥ -60 dBm, yellow -60 … -85, red < -85. |
 | `src/mockData.ts` | Sample networks and packets for `?mock`. |
 | `src/mockPacketDetails.json` | Real answers of `GET /api/packets/{id}` (a beacon, an encrypted frame, a TCP SYN, an HTTP GET), saved while replaying the fixtures; used by `?mock`. |
 | `src/components/ControlPanel.tsx` | Interface and mode, start/stop capture, replay a `.pcap` file, pin a channel. |

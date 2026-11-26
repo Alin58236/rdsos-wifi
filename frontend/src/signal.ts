@@ -1,5 +1,4 @@
-// Signal strength → colour, the same thresholds as Android WiFi Analyzer:
-// green ≥ -60 dBm, yellow -60 … -75 dBm, red < -75 dBm.
+// Signal strength → colour: green ≥ -60 dBm, yellow -60 … -85 dBm, red < -85 dBm.
 
 export type SignalLevel = 'good' | 'fair' | 'weak' | 'unknown'
 
