@@ -1,10 +1,10 @@
-# Session Handoff — 2026-11-22
+# Session Handoff — 2026-11-25
 
 Context from the Claude Code sessions so far: session 1 on the Windows desktop; session 2 on the laptop (Windows side), which prepared the no-USB live boot; session 3 on the laptop's installed Ubuntu, which fixed 2.4 GHz monitor mode (§4).
 **New session: read this file, `CLAUDE.md`, `docs/requirements.md` and `docs/course-notes-summary.md` first.**
 
 ## 1. Who does what
-- **Split by grade weight (since session 3, because of the 7-day deadline).** The user writes the graded core: FFM capture, the `.pcap` reader, all parsers, and the AP/security logic. Claude writes the plumbing (Spring config, `iface/`, `CaptureService`, REST/WebSocket, the whole React frontend) and reviews the user's code. Details are in `CLAUDE.md` → Working mode, and the schedule is in `docs/PLAN.md`.
+- **Split by grade weight (since session 3, because of the 7-day deadline).** The user writes the graded core: FFM capture, the `.pcap` reader, `CaptureService`, all parsers, and the AP/security logic. Claude writes the plumbing (Spring config, `iface/`, REST/WebSocket, the whole React frontend) and reviews the user's code. Order since 2026-11-22: the whole backend first, then the frontend; target Thursday night. Details are in `CLAUDE.md` → Working mode, and the schedule is in `docs/PLAN.md`.
 - `CLAUDE.md` and this file stay **tracked in git**: they are how the desktop and laptop sessions stay in sync.
 - The user wants concise, direct answers and step-by-step guidance for machine setup.
 
@@ -97,27 +97,24 @@ for ch in 1 6 11; do sudo iw dev $IF set channel $ch; echo "== ch $ch =="; sudo 
 - `iw list` showing `monitor` is **not** proof on its own: Linux's Wi-Fi layer (mac80211) lists monitor mode for almost every card. Only the beacon capture above counts.
 - The live session runs from RAM; nothing installed there persists.
 
-## 5. Next steps
+## 5. Status and next steps (2026-11-25, Wednesday evening)
 
-### Next session: FFM bindings for libpcap
-Agreed on 2026-11-22 (desktop session): the next discussion covers the **FFM bindings for libpcap**, using `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment` for `pcap_create`, `pcap_set_snaplen`, `pcap_set_timeout`, `pcap_activate`, `pcap_datalink`, `pcap_next_ex`, `pcap_stats` and `pcap_close`. The capture-loop design we agreed on is in `docs/info_for_project.md` §16. The bindings are graded core, so the user writes them; Claude guides and reviews.
+**The app is feature-complete for `docs/requirements.md`.** 193 backend tests pass; the frontend lints and builds. Everything is committed except the doc updates of this session.
 
-How the user can prepare:
-- Read **JEP 454** (Foreign Function & Memory API), the sections on `Linker`, `SymbolLookup`, `FunctionDescriptor`, `Arena` and `MemorySegment`. The bindings are built from these.
-- Skim `man pcap_create` and `man pcap_next_ex` on the laptop (`libpcap-dev` is installed) for the C signatures we'll translate.
-- Work on **`feat/backend-scaffold`**, so the bindings sit next to `InterfaceService` and `ChannelHopper`.
-- Optional but useful: save a short `.pcap` from your own hotspot in monitor mode (`sudo tcpdump -i wlp4s0 -w test.pcap -c 200`). We'll use it as the fixture for the first parser.
+Done (who wrote it: U = user, C = Claude, as agreed in `CLAUDE.md`; the user asked Claude to write some graded parts when stuck):
+- Capture: `LibPcap` + `PcapLiveSource` (FFM, C at the user's request), `PcapFileReader` (U), `CaptureService` with the live loop and paced replay (U, reviewed).
+- Parsers (U, tests by C): Radiotap, 802.11 (management, data, QoS, control), IEs, beacon, security, Ethernet, LLC/SNAP, HTTP payload. IPv4 and TCP: the user started them, Claude finished them. `PacketDecoder` (U, step 1 corrected by C).
+- `PacketStore`, beacon parsing moved into the decoder, `processFrame` wiring, `PacketViewMapper` (C at the user's request).
+- API: packet endpoint with 404, packets in the WebSocket (≤ 500 per tick, the rest in the next tick). `status.linkType` removed (user's decision).
+- Frontend: controls, channel graph, AP table, packet list, layer tree, hex dump with layer highlighting.
+- **Verified live on the laptop:** the AP list in monitor mode, and the sniffer in managed mode with `curl http://neverssl.com`.
 
-To resume, the user says "continuăm cu FFM".
+Dropped from the scope (user's decision, 2026-11-25): UI packet filters, UDP, IPv6, checksum verification, decoding of IP/TCP options (shown as raw hex). Not implemented: 4-address frames and the 802.11 Order bit; `status.dropped` is always 0.
 
-### Status / backlog
-**The demo is around Fri 2026-11-27. The day-by-day plan, the cut order and the technical reference for every parser are in `docs/PLAN.md`.** As of 2026-11-22 the user's Day 1 items (`ByteReader`, fixtures from `docs/CAPTURES.md`) are still open, about one day behind; the FFM bindings were pulled forward from Day 4.
-1. **Dev toolchain: installed** in session 3. OpenJDK 25.0.5 (apt), libpcap-dev 1.10.4, Wireshark 4.2 (non-root capture left off), Node v26 LTS through nvm, IntelliJ IDEA 2026.3 and VS Code (snaps), `git`, `gh` (logged in), `iw`, `tcpdump`. `sudo` doesn't work from Claude Code's `!` prefix because there's no terminal; use `pkexec`, and add `DEBIAN_FRONTEND=noninteractive` for apt packages that ask questions.
-2. **Backend scaffold: in progress** on `feat/backend-scaffold` (Maven, `CommandRunner`, `InterfaceService`, `ChannelHopper`, unit tests, `docs/PLAN.md`, `docs/CAPTURES.md`). Not merged into `main` yet. `frontend/` hasn't been started.
-3. **Capture fixtures from your own hotspot only** (roadmap step 0), now possible on 2.4 GHz.
-4. **Cleanup** (from Windows, admin), still pending: `bcdedit /delete {04a2b5f1-be2d-11ee-94b0-c915f0101598}`, delete the 8 GB `UBUNTU` FAT32 partition (`nvme0n1p4`, U:), and give the space back to D:.
-- Global Claude Code setup from `docs/claude-setup/` was installed on Ubuntu in session 3, with the vercel and figma plugins.
-- The AR9271 / MT7612U USB adapter is optional backup now. If the built-in card regresses after a kernel update, rerun the hopper simulation: `sudo bash docs/monitor-test.sh` (results go to `~/wifi-hop-test.txt`).
+Next (Thursday 2026-11-26):
+1. **Monitor-mode sniffer on an open 2.4 GHz network** (router guest network without a password, or an Android hotspot; an iPhone hotspot always has a password), with a second device loading `http://neverssl.com` and the channel pinned. This is the one requirement not yet seen live. Steps in `docs/DEMO.md` §3.
+2. Record the backup capture outside the repo (`docs/DEMO.md` §0).
+3. Rehearse with `docs/DEMO.md`. Study `docs/FLOW.md` (the whole data flow in Romanian, with sources for every bit layout and answers to likely questions).
 
 ## 6. Project roadmap (the user implements; Claude guides)
 0. Hardware check and test captures from **your own hotspot only**: beacons; an open network with plain HTTP (monitor mode); HTTP in managed mode; WPA2 data. Save them as `.pcap` fixtures.
@@ -137,3 +134,8 @@ To resume, the user says "continuăm cu FFM".
 - `docs/claude-setup/`: the user's global Claude Code setup (global CLAUDE.md, settings, skills) with install steps. Installed on the laptop's Windows side in session 2 and on its Ubuntu in session 3.
 - `docs/info_for_project.md`: the user's study notes, in Romanian with English terms. Project-relevant course content (p. 1–73) plus implementation notes: §15 which course tools to use, §16 libpcap capture and loop design.
 - `docs/monitor-test.sh`: monitor-mode hopper test (driver reload, channels 1–13 at 250 ms, beacon counts per real channel).
+- `docs/API.md`: the REST/WebSocket contract between backend and frontend.
+- `docs/PLAN.md`: the original day plan, the technical reference per parser, and the scope cuts.
+- `docs/CAPTURES.md`: how the `.pcap` fixtures were recorded.
+- `docs/DEMO.md`: the demo script, plan B (replay) and troubleshooting.
+- `docs/FLOW.md`: the whole data flow from the card to the browser, every parser check, and where each bit layout comes from (Romanian, for the user).

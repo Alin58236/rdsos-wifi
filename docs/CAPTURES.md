@@ -29,7 +29,7 @@ The script finds the network's current BSSID and channel, switches to monitor mo
    ```
 3. Read `~/capture-fixtures.log`: it should end with `saved 50 beacons` and `saved 200 data frames`.
 
-Captured on 2026-11-22 (router `ArtemisZone`, channel 10): Radiotap Flags has FCS (0x10); security is mixed WPA/WPA2-Personal (RSN IE 48 with AKM 2 and TKIP group cipher, plus WPA vendor IE 221); 175 of the 200 data frames are Protected.
+Captured on 2026-11-22 (router `HomeNetwork`, channel 10): Radiotap Flags has FCS (0x10); security is mixed WPA/WPA2-Personal (RSN IE 48 with AKM 2 and TKIP group cipher, plus WPA vendor IE 221); 175 of the 200 data frames are Protected.
 
 ## B. Managed mode HTTP
 1. Connect the laptop to Wi-Fi as usual (home network or the iPhone hotspot).

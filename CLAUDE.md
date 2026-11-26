@@ -13,14 +13,17 @@ Master's course project (RDSOS): a **Wi-Fi Analyzer** (similar to Android WiFi A
 ## Working mode
 
 **Split by grade weight** (chosen for the 7-day deadline; demo around 2026-11-27). The day-by-day plan is in `docs/PLAN.md`.
-- **The user writes the graded core:** `capture/` (FFM libpcap binding, `.pcap` file reader), every parser in `parse/` (Radiotap → HTTP), and `wifi/` (IEs, security, OUI, AP registry). Claude does **not** write these. Explain, point to the reference in `docs/PLAN.md`, write nothing beyond short snippets, and review.
-- **Claude writes the plumbing:** `config/`, `iface/` (commands, mode switch, channel hopper), `CaptureService`, `api/` (REST/WebSocket), and the whole `frontend/`. TDD applies to these as well.
+- **The user writes the graded core:** `capture/` (FFM libpcap binding, `.pcap` file reader, and `CaptureService`, the capture thread and start/stop orchestration), every parser in `parse/` (Radiotap → HTTP), and `wifi/` (IEs, security, OUI, AP registry). Claude does **not** write these. Explain, point to the reference in `docs/PLAN.md`, write nothing beyond short snippets, and review.
+- **Claude writes the plumbing:** `config/`, `iface/` (commands, mode switch, channel hopper), `api/` (REST/WebSocket, on top of the user's `CaptureService`), and the whole `frontend/`. TDD applies to these as well.
+- **Order: the whole backend first, then the frontend** (user's decision, 2026-11-22). The REST/WebSocket contract is in `docs/API.md` (agreed 2026-11-23): parsers return typed headers, and a mapper in `api/` turns them into the UI's `Layer`/`Field` view.
 - Explanations go in **Romanian, with technical terms left in English** (carrier, frame, header, beacon...); code and technical docs (CLAUDE.md, HANDOFF.md) stay in English; personal study notes (e.g. `docs/info_for_project.md`) are in Romanian.
 - Session history and next steps are in `docs/HANDOFF.md`.
 
 ## Status
 
-Backend scaffolded (Spring Boot 4.2.0, Java 25, Maven): `config/` and `iface/` exist with tests. The frontend and the user's packages are not written yet.
+**Feature-complete for `docs/requirements.md` (2026-11-25), 193 backend tests.** Backend: capture (FFM `LibPcap` + `PcapLiveSource`, hand-written `PcapFileReader`), `CaptureService` (capture thread, paced replay), parsers Radiotap → 802.11 → beacon/IEs → LLC/SNAP or Ethernet → IPv4 → TCP → HTTP, `PacketDecoder` (dispatch by link type), `PacketStore` (last 5,000 packets), AP registry, REST + WebSocket (status, APs and new packets every 200 ms), `GET /api/packets/{id}`. Frontend: controls, channel graph, AP table, packet list, layer tree and hex dump with layer highlighting; `?mock` uses real sample packets. Verified live on the laptop: the AP list in monitor mode and the sniffer in managed mode. Not yet confirmed: the monitor-mode sniffer on an open network. Remaining: that test and the rehearsal, both in `docs/DEMO.md`. The whole data flow, explained for the user (Romanian), is in `docs/FLOW.md`.
+
+**Actual package layout** (the architecture section below uses the original plan's names): capture and parsers in `service/parser/`, `PacketDecoder` and `PacketStore` in `service/sniffer/`, `CaptureService` and `AccessPointRegistry` in `service/wifi/`, `InterfaceService` and `ChannelHopper` in `service/iface/`, models in `model/`, `ByteReader`/`ChannelMath`/`OuiDatabase`/`SecurityClassifier` in `util/`, REST, `PacketViewMapper` and `UpdatesPublisher` in `api/`.
 
 **Machines:** the main dev machine is a Windows desktop with **no Wi-Fi adapter**, so parser work and tests there run against `.pcap` fixtures only. Live capture runs on an Asus TUF FX505DU laptop, dual booting Ubuntu 24.04 (kernel 7.0).
 
@@ -29,7 +32,7 @@ Backend scaffolded (Spring Boot 4.2.0, Java 25, Maven): `config/` and `iface/` e
 ## Stack and layout
 
 - `backend/`: Spring Boot, **Java 25**, **Maven** (wrapper `./mvnw`). Calls libpcap through the **Java FFM API** (`java.lang.foreign`) with no capture library. Base package `com.rdsos.wifianalyzer`; settings under `wifi.*` in `application.properties` (bound to `config/WifiProperties`).
-- `frontend/`: Vite + React + TypeScript + shadcn/ui. A localhost tool, so no Next.js and no website launch checklist.
+- `frontend/`: Vite + React + TypeScript + Tailwind CSS + a few shadcn/ui components. A localhost tool, so no Next.js and no website launch checklist. The user asked for code that is easy to read and explain: few components, explicit variable names, comments on the why.
 - `docs/`: requirements, plan (`PLAN.md`), handoff and notes.
 
 ## Commands
@@ -75,7 +78,7 @@ sudo tcpdump -i <if> -y IEEE802_11_RADIO -c 20   # sanity check: beacons visible
 - **Encrypted traffic:** data frames with the Protected bit set (WPA2) can't be parsed past the 802.11 header. Show them as encrypted. Demo IP/TCP/HTTP in Monitor mode with an **open** test network and plain-HTTP traffic from a second device.
 
 ### Frontend
-- AP list: signal icon colour by RSSI (green ≥ −60 dBm, yellow −60…−75, red < −75), plus SSID, BSSID, vendor, dBm, channel, MHz and security.
+- AP list: signal icon colour by RSSI (green ≥ −60 dBm, yellow −60…−85, red < −85), plus SSID, BSSID, vendor, dBm, channel, MHz and security.
 - Channel graph: **custom SVG** with a curve per AP spanning about ±2 channels around its centre and height = RSSI, the same look as the Android app.
 - Packet view: virtualized list, a detail pane with a layer tree, and a hex dump.
 

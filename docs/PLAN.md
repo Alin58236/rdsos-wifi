@@ -33,7 +33,7 @@ Goal: one localhost app with all required features in both modes, and a rehearse
 | Package | Files | Owner |
 |---|---|---|
 | `capture/` | `CaptureSource`, `RawFrame`, `PcapFileSource`, `LibPcap` (FFM handles), `PcapLiveSource` | U |
-| `capture/` | `CaptureService` (threads, queue, start/stop) | C |
+| `capture/` | `CaptureService` (threads, queue, start/stop) | U |
 | `parse/` | `ByteReader` (u8, u16/u32 LE+BE, mac, ipv4 text), `RadiotapParser`, `Dot11Parser`, `InformationElements`, `LlcSnapParser`, `EthernetParser`, `Ipv4Parser`, `TcpParser`, `HttpPayload`, `PacketDecoder` (dispatch by link type → `DecodedPacket`) | U |
 | `wifi/` | `AccessPoint`, `ApRegistry`, `SecurityClassifier`, `OuiDatabase`, `ChannelMath` | U |
 | `iface/` | `CommandRunner` (`ProcessBuilder`, argument arrays), `InterfaceService` (lists `/sys/class/net/*/wireless`; reads mode from `/sys/class/net/X/type`: 1 = managed, 803 = monitor; switches modes), `ChannelHopper` | C |
@@ -100,7 +100,7 @@ Maven dependencies: `spring-boot-starter-web`, `spring-boot-starter-websocket`, 
 - WPA = IE 221 with OUI `00:50:F2`, type 1.
 - WEP = the privacy bit with no RSN/WPA IE. Open = no privacy bit.
 - `ChannelMath`: 2.4 GHz `ch = (f − 2407) / 5` (2484 → 14); 5 GHz `ch = (f − 5000) / 5`.
-- `OuiDatabase`: parse the `XX-XX-XX   (hex)   Vendor` lines into a map. If the MAC's first byte has bit 0x02 set, show "Locally administered (random)".
+- `OuiDatabase`: parse the `XX-XX-XX   (hex)   Vendor` lines into a map. If the MAC's first byte has bit 0x02 set, show "Local/Unknown".
 
 **Sniffer layers:**
 - LLC/SNAP: `AA AA 03 00 00 00` + EtherType; 0x0800 = IPv4. If the protected bit is set, stop and mark the frame "Encrypted (WPA2)".
@@ -110,15 +110,22 @@ Maven dependencies: `spring-boot-starter-web`, `spring-boot-starter-websocket`, 
 - HTTP: when either port is 80 and there's a payload, show printable ASCII with other bytes as `.`.
 
 ## Day plan (part-time; U = user, C = Claude)
+Revised on Sun 2026-11-22: **the whole backend first, then the frontend**, and the user writes `CaptureService`. Target: everything done by **Thursday night**, demo Friday.
+
 | Day | U (graded core, TDD) | C (plumbing) |
 |---|---|---|
-| **1 · Sat 21** | Capture fixtures (see below). `ByteReader` + tests. `PcapFileSource` + test against `beacons.pcap`. | Maven scaffold (start.spring.io settings, `mvnw`, `application.properties`, test layout). `iface/` (`CommandRunner`, `InterfaceService`, mode switch), `ChannelHopper`. |
-| **2 · Sun 22** | `RadiotapParser`, `Dot11Parser` (TDD: fixtures plus hand-built byte arrays for alignment, extended bitmask, QoS, 4-address). | `CaptureService`, `BatchPublisher`, REST + WS endpoints, DTOs. Vite + React + TS + shadcn scaffold with `/api` and `/ws` proxy. |
-| **3 · Mon 23** | `InformationElements`, `SecurityClassifier`, `ChannelMath`, `OuiDatabase`, `ApRegistry`. **Milestone: AP list from `beacons.pcap` through `PcapFileSource`.** | AP table (signal icon colours, all 7 fields), WS client hook, mode/interface/start/stop controls. |
-| **4 · Tue 24** | `LibPcap` + `PcapLiveSource` (FFM). **Milestone: live AP list with the hopper on the laptop.** | Channel graph (custom SVG, a curve per AP spanning ±2 channels). Pin-channel control. |
-| **5 · Wed 25** | `LlcSnapParser`, `EthernetParser`, `Ipv4Parser`, `TcpParser`, `HttpPayload`, `PacketDecoder` → `Layer` model. | Packet list (latest 1,000 rows, filters: all / IP / HTTP), detail tree, hex dump with field highlighting. |
-| **6 · Thu 26** | Live end-to-end in both modes; fix bugs from Wireshark comparisons. | Integration fixes, `docs/DEMO.md` demo script, update `CLAUDE.md` and `HANDOFF.md`. |
-| **7 · Fri 27** | Rehearse. Demo. | Final review. |
+| **1–2 · Sat 21 – Sun 22 (done)** | Fixtures (router + iPad, see `CAPTURES.md` part A). `ByteReader`. `.pcap` reader (`RawFrame`, `CaptureSource`, `PcapFileReader`). | Maven scaffold, `iface/` (`InterfaceService` + restore on shutdown, `ChannelHopper`), manual monitor-mode test runner. |
+| **3 · Mon 23** | `RadiotapParser`, `Dot11Parser` (TDD: fixture plus hand-built byte arrays for alignment, extended bitmask, QoS, 4-address). | Review. Propose the `AccessPoint` fields, the `Layer`/`Field` model and the REST/WebSocket contract for the user to approve. Done: `docs/API.md`. |
+| **4 · Tue 24** | Information elements, `SecurityClassifier`, `ChannelMath`, `OuiDatabase`, `AccessPoint`, `ApRegistry`. **Milestone: AP list from `beacons-wpa2.pcap`.** Fixtures B and C (`managed-http.pcap`, open-AP feasibility + `open-http.pcap`) by Tuesday evening. | Review. |
+| **5 · Wed 25** | `LibPcap` + `PcapLiveSource` (FFM), `CaptureService`. **Milestone: live AP list in the log, with the hopper.** Then `LlcSnapParser`, `EthernetParser`, `Ipv4Parser`, `TcpParser`, `HttpPayload`, `PacketDecoder` → `Layer` model. | REST + WebSocket batch publisher on top of `CaptureService`, DTOs. |
+| **6 · Thu 26** | Live end-to-end in both modes; fix bugs from Wireshark comparisons. **Rehearse in the evening.** | The whole frontend (AP table, channel graph, packet view, controls), `docs/DEMO.md`, replay fallback ready. |
+| **7 · Fri 27** | Demo. | — |
+
+Risk: the frontend gets a single day. Any backend slip lands on it, so the contract is fixed on Monday and the frontend starts earlier if the backend finishes early.
+
+**Dropped on Wed 2026-11-25 (user's decision):** packet filters in the UI, UDP, IPv6, checksum verification, decoding of IP/TCP options (they are shown as raw bytes). Still planned: Dot11 4-address and Order bit, hex highlighting, the `dropped` counter.
+
+**Status on Wed 2026-11-25 evening:** every day-1 to day-6 item is done, a day early, including the whole frontend and hex highlighting by layer. Not done: Dot11 4-address and Order bit, the `dropped` counter (always 0, no queue). Left for Thursday: the monitor-mode sniffer on an open network and the rehearsal, see `docs/DEMO.md`.
 
 **Cut order if behind** (never cut the required features):
 1. Hex field highlighting (keep the plain hex dump).

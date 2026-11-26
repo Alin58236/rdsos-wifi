@@ -52,7 +52,7 @@ The server sends **one message every 200 ms** while at least one client is conne
 ```
 
 - `aps`: the **full** current snapshot of the AP registry, sorted by `signalDBm` descending. The client replaces its list on every message.
-- `packets`: **only the packets decoded since the previous message**, oldest first, at most 500. The client appends them and keeps the last 1,000 rows. Packets beyond 500 per tick are not sent and are counted in `status.dropped`.
+- `packets`: **only the packets decoded since the previous message**, oldest first, at most 500. The client appends them and keeps the last 1,000 rows. Packets beyond 500 per tick wait in the packet store and go out in the next message; only packets that leave the 5,000-packet store before they are sent are lost.
 
 ## 3. Types
 
@@ -64,7 +64,6 @@ The server sends **one message every 200 ms** while at least one client is conne
   "source": "LIVE",
   "interface": "wlp4s0",
   "mode": "MONITOR",
-  "linkType": 127,
   "currentChannel": 6,
   "pinnedChannel": null,
   "frames": 18342,
@@ -79,11 +78,10 @@ The server sends **one message every 200 ms** while at least one client is conne
 | `source` | `"LIVE"` \| `"FILE"` \| null | null when stopped |
 | `interface` | string \| null | for `FILE`, the file name |
 | `mode` | `"MANAGED"` \| `"MONITOR"` \| `"OTHER"` \| null | |
-| `linkType` | int \| null | `127` = Radiotap (monitor), `1` = Ethernet (managed) |
 | `currentChannel` | int \| null | channel the hopper is on; null in managed mode |
 | `pinnedChannel` | int \| null | |
 | `frames` | long | frames read since start |
-| `dropped` | long | frames lost (full queue) plus packets not sent over WebSocket |
+| `dropped` | long | packets lost before they were sent. Not counted yet, always `0` (frames are decoded on the capture thread, so there is no queue to overflow). |
 | `parseErrors` | long | frames rejected by a parser |
 
 ### AccessPoint
@@ -91,7 +89,7 @@ The server sends **one message every 200 ms** while at least one client is conne
 ```json
 {
   "bssid": "50:d4:f7:03:12:f3",
-  "ssid": "ArtemisZone",
+  "ssid": "HomeNetwork",
   "channel": 10,
   "frequencyMHz": 2457,
   "signalDBm": -68,
@@ -109,10 +107,10 @@ The server sends **one message every 200 ms** while at least one client is conne
 | `frequencyMHz` | int \| null | derived from `channel`, not from Radiotap (see `CLAUDE.md`, neighbouring-channel leakage) |
 | `signalDBm` | int \| null | Radiotap combined antenna signal of the latest beacon |
 | `security` | string | display text: `Open`, `WEP`, `WPA-PSK`, `WPA2-PSK`, `WPA/WPA2-PSK`, `WPA3-SAE`, `WPA2/WPA3`, `WPA2-Enterprise`, … |
-| `vendor` | string \| null | from the bundled OUI file; `Locally administered` for random MACs |
+| `vendor` | string \| null | from the bundled OUI file; `Local/Unknown` for random (locally administered) MACs |
 | `lastSeenMillis` | long | backend wall-clock time (`System.currentTimeMillis()`) when the latest beacon was processed, so replayed files do not expire at once. APs unseen for 30 s are removed. |
 
-The UI colours the signal icon from `signalDBm`: green ≥ −60, yellow −60 to −75, red < −75.
+The UI colours the signal icon from `signalDBm`: green ≥ −60, yellow −60 to −85, red < −85.
 
 ### PacketSummary (one row of the packet list)
 
@@ -124,7 +122,7 @@ The UI colours the signal icon from `signalDBm`: green ≥ −60, yellow −60 t
   "protocol": "802.11 Beacon",
   "source": "50:d4:f7:03:12:f3",
   "destination": "ff:ff:ff:ff:ff:ff",
-  "info": "SSID=ArtemisZone CH=10"
+  "info": "SSID=HomeNetwork CH=10"
 }
 ```
 
